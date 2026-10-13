@@ -37,6 +37,8 @@ Les recherches sans correspondance dans le classeur importé restent consultable
 
 Les doublons SIREN sont signalés et la première ligne est conservée, sans addition automatique de CA. Les zéros initiaux des SIREN sont préservés. L’onglet facultatif **Détail Clients** complète les informations de groupe ; leur onglet, ligne et colonnes d’origine restent consultables. Les formules Excel ne sont pas recalculées par le navigateur : leurs résultats doivent avoir été enregistrés dans le classeur.
 
+Les en-têtes répétés (par exemple CUID, CUID Cible ou RDV BM.) ne bloquent pas l’import. Chaque occurrence conserve ses valeurs dans une colonne distincte, identifiée par son numéro, et le diagnostic les signale. Pour les informations reconnues automatiquement, la première occurrence est utilisée par défaut ; la direction et la catégorie commerciales peuvent être choisies explicitement dans les correspondances de colonnes.
+
 Aucun fichier ni recherche n’est envoyé à un service externe par l’analyseur. Les liens de preuve s’ouvrent sur demande. Cette version est un outil local : elle ne fournit pas de recherche Google automatique ni de base de données partagée entre plusieurs utilisateurs.
 
 ## Sources et validation

@@ -178,6 +178,44 @@ test("Import : AURA/RM et MDM/HDM/SPES lus depuis Excel, groupes enrichis via D�
   assert.equal(data.clients["012345678"].segment, "MDM");
   assert.equal(data.clients["012345678"].groupName, "Groupe A");
 });
+test("En-têtes répétés : clés uniques, aucune valeur écrasée, collisions évitées", () => {
+  const values = [
+    "SIREN",
+    "Raison Sociale",
+    "CUID",
+    "CUID",
+    "CUID [colonne 4]",
+    "CUID Cible",
+    "CUID Cible",
+    "RDV BM.",
+    "RDV BM.",
+    "__row",
+  ];
+  const { headers, duplicates } = D.uniqueHeaders(values);
+  assert.equal(new Set(headers.map(D.norm)).size, values.length);
+  assert.equal(headers[0], "SIREN");
+  assert.equal(headers[2], "CUID");
+  assert.notEqual(headers[3], headers[4]);
+  assert.notEqual(headers[9], "__row");
+  assert.deepEqual(duplicates, ["CUID", "CUID Cible", "RDV BM.", "__row"]);
+  const row = Object.fromEntries(
+    headers.map((header, i) => [
+      header,
+      i === 0 ? "012345678" : i === 1 ? "Client" : `valeur ${i}`,
+    ]),
+  );
+  const result = D.importSheets([
+    {
+      name: "DEGSE",
+      headers,
+      rows: [row],
+      headerIssues: ["En-têtes répétés : import accepté."],
+    },
+  ]);
+  assert.equal(result.clients["012345678"].raw[headers[3]], "valeur 3");
+  assert.equal(result.clients["012345678"].raw[headers[4]], "valeur 4");
+  assert.ok(result.issues.includes("En-têtes répétés : import accepté."));
+});
 test("Doublons Excel : aucune somme implicite, diagnostic et marquage", () => {
   const rows = [
     { SIREN: "012345678", "Raison Sociale": "A", "CA GLOBAL 12 mois": 12 },

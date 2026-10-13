@@ -27,9 +27,16 @@ def fixture(path):
     ws.append(['987654321', '<img src=x onerror="window.injected=true">', 'AURA', 'HDM', 'Commercial B', 'Commerce', None, ''])
     ws.append(['123456789', 'DOUBLON FICTIF', 'AURA', 'MDM', 'Autre', 'Autre', 999999, ''])
     ws.append(['INVALIDE', 'Ligne invalide', 'RM', 'MDM'])
+    for col, header in enumerate(['CUID','CUID','CUID Cible','CUID Cible','RDV BM.','RDV BM.'], start=9):
+        ws.cell(2, col, header)
+        ws.cell(4, col, f'VALEUR DISTINCTE {col}')
     details = wb.create_sheet('Détail Clients')
     details.append(['ENT. SIREN', 'Raison Sociale', 'GRP. Raison Sociale', 'GRP. SIREN Maison Mère'])
     details.append(['123456789', 'Filiale fictive internationale', 'Groupe mentionné dans Excel', '222222222'])
+    details.cell(1, 5, 'CUID')
+    details.cell(1, 6, 'CUID')
+    details.cell(2, 5, 'DETAIL PREMIER')
+    details.cell(2, 6, 'DETAIL SECOND')
     wb.save(path)
 
 def main():
@@ -56,6 +63,9 @@ def main():
             expect(page.locator('#fileMeta')).to_contain_text('3 entreprises importées')
             expect(page.locator('#tableBody tr')).to_have_count(3)
             expect(page.locator('#diagnosticContent')).to_contain_text('1 SIREN en doublon')
+            expect(page.locator('#diagnosticContent')).to_contain_text('En-têtes répétés dans DEGSE : CUID, CUID Cible, RDV BM.')
+            expect(page.locator('#diagnosticContent')).to_contain_text('En-têtes répétés dans Détail Clients')
+            checks.append('En-têtes CUID/CUID Cible/RDV BM. répétés acceptés, y compris dans Détail Clients')
             assert page.evaluate('window.injected') is None
             checks.append('Import XLSX réel, en-tête décalé, SIREN avec zéro, doublon, ligne invalide et affichage sécurisé')
             page.locator('#importDiagnostic').evaluate('(el) => el.open = true')
@@ -72,6 +82,10 @@ def main():
             page.locator('[data-company="123456789"]').click()
             expect(page.locator('#excelDetail')).to_contain_text('Groupe mentionné dans Excel')
             expect(page.locator('#rawExcel')).to_contain_text('Détail Clients')
+            for col in range(9, 15):
+                expect(page.locator('#rawExcel')).to_contain_text(f'VALEUR DISTINCTE {col}')
+            expect(page.locator('#rawExcel')).to_contain_text('DETAIL PREMIER')
+            expect(page.locator('#rawExcel')).to_contain_text('DETAIL SECOND')
             form = page.locator('#researchForm')
             values = {'checkedAt':'2026-01-12','sector':'Services numériques FICTIFS','sectorSource':'https://example.com/sector','hq':'France','hqSource':'https://example.com/hq','groupName':'Groupe FICTIF','groupHQ':'Finlande','groupSource':'https://example.com/group','countries':'Italie ; Suisse ; Allemagne ; Chine ; Pays-Bas','presenceSource':'https://example.com/locations','revenueAmount':'200000000','revenueYear':'2024','revenueSource':'https://example.com/report','notes':'Données synthétiques pour test uniquement.'}
             for name,value in values.items():

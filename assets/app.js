@@ -396,25 +396,24 @@
             headerRow = row;
         });
         if (!headerRow) return { name: ws.name, headers: [], rows: [] };
-        const headers = [];
+        const labels = [];
         headerRow.eachCell({ includeEmpty: true }, (c, n) => {
-          headers[n - 1] = D.text(cellValue(c)) || `Colonne ${n}`;
+          labels[n - 1] = D.text(cellValue(c)) || `Colonne ${n}`;
         });
-        const duplicateHeaders = headers.filter(
-          (h, i) => headers.indexOf(h) !== i,
-        );
-        if (duplicateHeaders.length)
-          throw Error(
-            `En-têtes en doublon dans ${ws.name} : ${D.unique(duplicateHeaders).join(", ")}.`,
-          );
+        const { headers, duplicates } = D.uniqueHeaders(labels);
+        const headerIssues = duplicates.length
+          ? [
+              `En-têtes répétés dans ${ws.name} : ${duplicates.join(", ")}. Import accepté : chaque colonne est conservée séparément avec son numéro. La première occurrence est utilisée par défaut pour les informations reconnues ; les correspondances commerciales restent sélectionnables.`,
+            ]
+          : [];
         const rows = [];
         ws.eachRow((row, n) => {
           if (n <= headerRow.number) return;
-          const obj = { __row: n };
+          const obj = Object.assign(Object.create(null), { __row: n });
           headers.forEach((h, i) => (obj[h] = cellValue(row.getCell(i + 1))));
           rows.push(obj);
         });
-        return { name: ws.name, headers, rows };
+        return { name: ws.name, headers, rows, headerIssues };
       });
       const result = D.importSheets(sheets);
       clients = result.clients;

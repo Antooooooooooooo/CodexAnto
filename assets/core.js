@@ -186,6 +186,29 @@
       "Pays accompagnés par Orange",
     ],
   };
+  function uniqueHeaders(values) {
+    const labels = Array.from(
+      values,
+      (value, i) => text(value) || `Colonne ${i + 1}`,
+    );
+    const reserved = new Set(labels.map(norm));
+    const used = new Set([norm("__row")]);
+    const duplicates = [];
+    const headers = labels.map((label, i) => {
+      let key = label;
+      if (used.has(norm(key))) {
+        duplicates.push(label);
+        key = `${label} [colonne ${i + 1}]`;
+        let suffix = 2;
+        while (reserved.has(norm(key)) || used.has(norm(key))) {
+          key = `${label} [colonne ${i + 1}, ${suffix++}]`;
+        }
+      }
+      used.add(norm(key));
+      return key;
+    });
+    return { headers, duplicates: unique(duplicates) };
+  }
   function columns(headers) {
     const map = {};
     for (const [field, aliases] of Object.entries(ALIASES)) {
@@ -219,7 +242,7 @@
         "Colonnes obligatoires absentes : SIREN et/ou Raison Sociale.",
       );
     const clients = {},
-      issues = [],
+      issues = sheets.flatMap((sheet) => sheet.headerIssues || []),
       duplicates = new Set();
     let invalid = 0;
     for (const row of main.rows) {
@@ -557,6 +580,7 @@
     zones,
     emptyResearch,
     fromLegacy,
+    uniqueHeaders,
     importSheets,
     qualify,
     opportunities,
