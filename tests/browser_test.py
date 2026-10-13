@@ -62,9 +62,12 @@ def main():
             page.locator('#search').fill('378317721')
             page.locator('[data-company="378317721"]').click()
             form = page.locator('#researchForm')
-            expect(form.locator('[name="countryCount"]')).to_have_value('14 pays européens au niveau groupe')
-            expect(form.locator('[name="revenueAmount"]')).to_have_value('6410000000')
+            expect(form.locator('[name="countryCount"]')).to_have_value('14 marchés européens opérationnels ; 20 pays de filiales listées en annexe (Allemagne comprise), présence juridique distincte.')
+            expect(form.locator('[name="revenueAmount"]')).to_have_value('6405874000')
             assert 'volume d’affaires France' in form.locator('[name="franceRevenue"]').input_value()
+            expect(page.locator('#registryDetail')).to_contain_text('CA des comptes de la société')
+            expect(page.locator('#suppliedDetail')).to_contain_text('Recherche documentaire')
+            expect(form.locator('[name="countryBreakdownKnown"]')).to_be_checked()
             expect(page.locator('#suppliedDetail')).to_contain_text('lot 16, ligne 474')
             assert page.locator('#suppliedDetail a').count() >= 2
             page.locator('[data-close="companyDialog"]').first.click()
@@ -76,7 +79,7 @@ def main():
             page.locator('#resetFilters').click()
             page.locator('.advanced').evaluate('(el) => el.open = true')
             page.locator('#followup').select_option('À rechercher par l’utilisateur')
-            expect(page.locator('#tableBody')).to_contain_text('761200773')
+            expect(page.locator('#tableBody')).to_contain_text('387715360')
             page.locator('#resetFilters').click()
             checks.append('Lots utilisateur, nombres de pays/sites, CA France séparé, sources citées et file de recherche manuelle')
             page.locator('#excelInput').set_input_files(str(xlsx))
@@ -151,8 +154,10 @@ def main():
             d.value.save_as(str(tmp/'backup.json'))
             backup = json.loads((tmp/'backup.json').read_text())
             assert backup['researches']['123456789']['reviewed'] is True
-            assert sum(len(r.get('contributions', [])) for r in backup['researches'].values()) == 16
-            assert backup['researches']['378317721']['countryCount'] == '14 pays européens au niveau groupe'
+            assert sum(sum(not e.get('kind') for e in r.get('contributions', [])) for r in backup['researches'].values()) == 16
+            assert backup['researches']['378317721']['revenue']['amount'] == 6405874000
+            assert sum(r.get('registryState') == 'Fermée' for r in backup['researches'].values()) == 6
+            assert sum(bool(r.get('registeredRevenue')) for r in backup['researches'].values()) == 588
             checks.append('Export CSV de toute la vue, neutralisation des formules, sauvegarde JSON complète')
             page.reload()
             page.locator('#scope').select_option('research')
@@ -162,6 +167,16 @@ def main():
             checks.append('Persistance des analyses et critères après rechargement')
             page.locator('#researchInput').set_input_files(str(tmp/'backup.json'))
             expect(page.locator('#notice')).to_contain_text('Les preuves doivent être relues')
+            expect(page.locator('#storageStatus')).to_contain_text('Modifications enregistrées')
+            stored = page.evaluate('localStorage.getItem("degse-international-v8")')
+            assert json.loads(stored)['encoding'] == 'gzip-base64'
+            assert len(stored) < 1500000
+            page.reload()
+            page.locator('#scope').select_option('research')
+            page.locator('#search').fill('123456789')
+            expect(page.locator('#tableBody')).to_contain_text('Filiale fictive internationale')
+            expect(page.locator('#tableBody')).to_contain_text('À qualifier')
+            checks.append('Sauvegarde complète des sources compressée sous la limite locale et relue après rechargement')
             expect(page.locator('#tableBody')).to_contain_text('À qualifier')
             bad = tmp/'bad.json'
             bad.write_text(json.dumps({'schemaVersion':1,'researches':{'123456789':{'siren':'bad'}}}))
@@ -200,6 +215,23 @@ def main():
             page.locator('[data-company="444444444"]').click()
             expect(page.locator('#excelDetail dt').filter(has_text='Groupe mentionné dans Excel').locator('..').locator('dd')).to_have_text('Non renseigné')
             checks.append('Réimport : aucune donnée de groupe du portefeuille précédent conservée')
+            legacy_context = browser.new_context()
+            legacy_page = legacy_context.new_page()
+            legacy_page.goto(url)
+            prior_format = dict(backup['researches']['123456789'])
+            for field in ['sourceDates', 'documentedCountries', 'operationalCountries']:
+                prior_format.pop(field, None)
+            legacy_page.evaluate('(payload) => localStorage.setItem("degse-international-v8", JSON.stringify(payload))',
+                {'schemaVersion':1, 'researches':{'123456789':prior_format}})
+            legacy_page.reload()
+            legacy_page.locator('#search').fill('123456789')
+            expect(legacy_page.locator('#tableBody')).to_contain_text('Cible confirmée')
+            legacy_page.locator('#methodBtn').click()
+            legacy_page.get_by_role('button', name='Appliquer les critères').click()
+            expect(legacy_page.locator('#methodDialog')).not_to_be_visible()
+            assert json.loads(legacy_page.evaluate('localStorage.getItem("degse-international-v8")'))['encoding'] == 'gzip-base64'
+            legacy_context.close()
+            checks.append('Ancienne sauvegarde locale JSON compatible, puis migration sans perte vers le stockage compressé')
             browser.close()
         print(json.dumps({'passed':len(checks),'checks':checks},ensure_ascii=False,indent=2))
     finally:

@@ -12,6 +12,7 @@
       .replace(/[^a-z0-9]+/g, " ")
       .trim();
   const text = (v) => String(v ?? "").trim();
+  const revenueYear = (v) => Number(text(v).match(/(?:19|20)\d{2}/)?.[0] || 0);
   const unique = (a) => [...new Set(a.filter(Boolean))];
   const siren = (v) => {
     const s = text(v).replace(/\s/g, "");
@@ -89,6 +90,17 @@
       franceRevenue: "",
       worldEmployees: "",
       followup: "",
+      registeredName: "",
+      registeredCountry: "",
+      registryState: "",
+      registryNAF: "",
+      registryActivity: "",
+      registeredRevenue: "",
+      researchConclusion: "",
+      publishedRevenue: "",
+      // null : ancienne recherche sans ventilation ; [] : aucun pays établi par la nouvelle source.
+      documentedCountries: null,
+      operationalCountries: null,
       contributions: [],
       changes: [],
       countries: [],
@@ -101,6 +113,7 @@
         reported: "",
       },
       sources: { hq: "", presence: "", sector: "", revenue: "", group: "" },
+      sourceDates: {},
       checkedAt: "",
       notes: "",
       coverage: { known: false, countries: [], source: "" },
@@ -171,11 +184,20 @@
     "franceRevenue",
     "worldEmployees",
     "followup",
+    "registeredName",
+    "registeredCountry",
+    "registryState",
+    "registryNAF",
+    "registryActivity",
+    "registeredRevenue",
+    "researchConclusion",
+    "publishedRevenue",
   ];
   function addContributions(records, supplied) {
     const result = structuredClone(records);
     for (const entry of supplied.records || []) {
       const r = result[entry.siren] || emptyResearch(entry.siren);
+      const applied = new Set();
       for (const [field, value] of Object.entries(entry.fields)) {
         if (field === "countriesText") continue;
         if (
@@ -190,9 +212,17 @@
             "presenceScope",
             "presenceType",
             "revenue",
+            "documentedCountries",
+            "operationalCountries",
           ].includes(field)
         )
           continue;
+        // Un rapport ancien enrichit l'archive sans écraser un exercice plus récent fourni par l'utilisateur.
+        if (field === "revenue" && revenueYear(r.revenue.year) > revenueYear(value.year)) {
+          r.changes.push({field, previous: value, current: r.revenue, source: entry.id,
+            note: "Chiffre vérifié plus ancien conservé dans les pièces ; exercice récent non revalidé par cette source."});
+          continue;
+        }
         if (
           JSON.stringify(r[field]) !== JSON.stringify(value) &&
           r[field] !== "" &&
@@ -206,38 +236,54 @@
             source: entry.id,
           });
         r[field] = structuredClone(value);
+        if (["documentedCountries", "operationalCountries"].includes(field) && Array.isArray(value))
+          r[field] = unique(value.map(country));
+        applied.add(field);
       }
-      const tokens = text(entry.fields.countriesText)
-        .replace(/Autre\s*:/gi, "")
-        .split(/[;,]/)
-        .map(text)
-        .filter(Boolean);
-      const nextCountries = unique(
-        tokens
-          .filter(knownCountry)
-          .map(country)
-          .filter((p) => p !== "France"),
-      );
-      if (
-        JSON.stringify(r.countries) !== JSON.stringify(nextCountries) &&
-        r.countries.length
-      )
-        r.changes.push({
-          field: "countries",
-          previous: r.countries,
-          current: nextCountries,
-          source: entry.id,
-        });
-      r.countries = nextCountries;
-      r.uncertainCountries = unique([
-        ...r.uncertainCountries,
-        ...tokens.filter((p) => !knownCountry(p)),
-      ]);
+      if (Object.hasOwn(entry.fields, "countriesText")) {
+        const tokens = text(entry.fields.countriesText)
+          .replace(/Autre\s*:/gi, "")
+          .split(/[;,]/)
+          .map(text)
+          .filter(Boolean);
+        const suppliedCountries = unique(
+          tokens.filter(knownCountry).map(country).filter((p) => p !== "France"),
+        );
+        const nextCountries = entry.mergeCountries
+          ? unique([...r.countries, ...suppliedCountries]) : suppliedCountries;
+        if (JSON.stringify(r.countries) !== JSON.stringify(nextCountries) && r.countries.length)
+          r.changes.push({
+            field: "countries", previous: r.countries, current: nextCountries, source: entry.id,
+          });
+        r.countries = nextCountries;
+        r.uncertainCountries = unique([
+          ...r.uncertainCountries,
+          ...tokens.filter((p) => !knownCountry(p)),
+        ]);
+        if (entry.kind === "documentary") {
+          r.documentedCountries = suppliedCountries;
+          if (suppliedCountries.length && r.noSignal) {
+            r.changes.push({field: "noSignal", previous: true, current: false, source: entry.id});
+            r.noSignal = false;
+          }
+        }
+      }
+      r.sourceDates = r.sourceDates || {};
+      for (const [field, url] of Object.entries(entry.fieldSources || {})) {
+        // Le code NAF prouve l'activité déclarée, pas une description historique plus détaillée.
+        if (field === "sector" && !applied.has("sector")) continue;
+        if (field === "revenue" && !applied.has("revenue")) continue;
+        if (Object.hasOwn(r.sources, field) && safeURL(url) && validDate(entry.checkedAt)) {
+          r.sources[field] = url;
+          r.sourceDates[field] = entry.checkedAt;
+        }
+      }
+      if (validDate(entry.checkedAt)) r.checkedAt = entry.checkedAt;
       r.contributions.push(structuredClone(entry));
       r.notes = unique([
         r.notes,
-        `Lot ${entry.lot}, ligne ${entry.line} : ${entry.notes}`,
-        ...entry.cautions,
+        `${entry.kind ? entry.lot : `Lot ${entry.lot}, ligne ${entry.line}`} : ${entry.notes}`,
+        ...(entry.cautions || []),
       ]).join("\n");
       r.analyzed = true;
       r.reviewed = false;
@@ -264,6 +310,15 @@
     const r = structuredClone(saved);
     r.contributions = [...(r.contributions || []), ...structuredClone(missing)];
     r.changes = r.changes || [];
+    // Les nouveaux constats du registre restent disponibles même si une saisie locale diffère.
+    for (const field of ["registeredName", "registeredCountry", "registryState", "registryNAF",
+      "registryActivity", "registeredRevenue", "researchConclusion", "publishedRevenue"])
+      if (missing.length && base[field]) r[field] = base[field];
+    for (const field of ["documentedCountries", "operationalCountries"])
+      if (missing.length && base[field] !== null) {
+        r[field] = structuredClone(base[field]);
+        r.countries = unique([...r.countries, ...base[field]]);
+      }
     if (
       missing.length &&
       !r.noSignal &&
@@ -274,9 +329,14 @@
     if (
       missing.length &&
       r.revenue.amount === null &&
+      !r.revenue.reported &&
+      !r.revenue.year &&
       base.revenue.amount !== null
     )
       r.revenue = structuredClone(base.revenue);
+    if (missing.length && JSON.stringify(r.revenue) !== JSON.stringify(base.revenue))
+      r.changes.push({field: "revenue", previous: base.revenue, current: r.revenue,
+        source: "Saisie locale conservée ; nouveau constat disponible dans les pièces"});
     for (const field of [
       ...EXTRA_FIELDS,
       ...(missing.length
@@ -292,9 +352,21 @@
           source: "Saisie locale conservée ; nouveau complément disponible",
         });
     }
+    r.sourceDates = r.sourceDates || {};
+    for (const field of Object.keys(base.sources)) {
+      const equal = field === "presence"
+        ? JSON.stringify(r.documentedCountries) === JSON.stringify(base.documentedCountries)
+        : field === "group"
+          ? r.groupName === base.groupName && r.groupHQ === base.groupHQ && r.groupRelation === base.groupRelation
+          : JSON.stringify(r[field]) === JSON.stringify(base[field]);
+      if (missing.length && base.sources[field] && !r.sources[field] && equal) {
+        r.sources[field] = base.sources[field];
+        r.sourceDates[field] = base.sourceDates[field] || base.checkedAt;
+      }
+    }
     r.notes = unique([
       r.notes,
-      ...missing.map((e) => `Lot ${e.lot}, ligne ${e.line} : ${e.notes}`),
+      ...missing.flatMap((e) => [`${e.kind ? e.lot : `Lot ${e.lot}, ligne ${e.line}`} : ${e.notes}`, ...(e.cautions || [])]),
     ]).join("\n");
     if (missing.length) r.reviewed = false;
     return r;
@@ -312,13 +384,20 @@
       missing.push("Nombre de pays");
     if (
       !r.foreignSites ||
-      /non communique|non confirme|non isole|aucun.*confirm|exact.*entite/.test(
+      /non communique|non confirme|non isole|non publie|non donne|a confirmer|aucun.*confirm|exact.*entite/.test(
         norm(r.foreignSites),
       )
     )
       missing.push("Sites / filiales à l’étranger");
     if (r.presenceType === "Inconnue") missing.push("Type de présence");
-    if (r.revenue.amount === null) missing.push("CA mondial");
+    if (r.documentedCountries !== null && !r.documentedCountries.length)
+      missing.push("Pays précis à corroborer par une source liée au client");
+    if (r.revenue.amount === null)
+      missing.push(r.revenue.reported ? "CA mondial historique à vérifier / structurer" : "CA mondial");
+    if (r.revenue.amount !== null && r.revenue.currency === "Autre")
+      missing.push("Devise du CA mondial");
+    if (r.revenue.amount !== null && r.revenue.scope === "Inconnu")
+      missing.push("Périmètre du CA mondial");
     if (!r.revenue.year) missing.push("Exercice du CA mondial");
     return missing;
   }
@@ -558,7 +637,8 @@
     );
   }
   function proof(r, field) {
-    return !!safeURL(r.sources?.[field]) && validDate(r.checkedAt);
+    const date = Object.hasOwn(r.sourceDates || {}, field) ? r.sourceDates[field] : r.checkedAt;
+    return !!safeURL(r.sources?.[field]) && validDate(date);
   }
   function qualify(r, criteria) {
     if (!r?.analyzed)
@@ -570,7 +650,7 @@
       };
     const reasons = [],
       excluded = [],
-      matches = r.countries.filter((c) =>
+      matches = (r.documentedCountries ?? r.countries).filter((c) =>
         criteria.targets.includes(BORDER.includes(c) ? c : OTHER),
       );
     if (r.noSignal && matches.length)
@@ -578,6 +658,8 @@
         "Résultats contradictoires : présence ciblée renseignée et absence de signal cochée.",
       );
     if (!r.reviewed) reasons.push("Analyse à relire et preuves à valider.");
+    if (r.registryState === "Fermée")
+      reasons.push("Entité fermée au registre : vérifier le compte actif successeur avant qualification.");
     if (!proof(r, "presence"))
       reasons.push("Source et date de présence internationale requises.");
     if (!matches.length)
@@ -593,16 +675,21 @@
       ).push("Implantation opérationnelle non établie.");
     if (
       !criteria.operationalOnly &&
-      ["Distribution", "Export"].includes(r.presenceType)
+      ["Distribution", "Export", "Réseau de partenaires"].includes(r.presenceType)
     ) {
       const i = reasons.indexOf("Implantation opérationnelle non établie.");
       if (i !== -1) reasons.splice(i, 1);
     }
+    if (criteria.operationalOnly && r.operationalCountries !== null &&
+        !matches.some((c) => (r.operationalCountries || []).includes(c)))
+      reasons.push("Aucun pays ciblé avec implantation propre documentée dans la ventilation par pays.");
     if (r.presenceScope === "Groupe") {
       if (!criteria.includeGroups)
         excluded.push("Présence au niveau du groupe hors critères.");
       else if (r.groupRelation !== "Oui" || !r.groupName || !proof(r, "group"))
         reasons.push("Lien de l’entité avec le groupe à documenter.");
+    } else if (r.presenceScope === "Réseau de partenaires") {
+      if (criteria.operationalOnly) excluded.push("Présence par partenaires indépendants hors critères opérationnels.");
     } else if (r.presenceScope !== "Entreprise")
       reasons.push("Périmètre entreprise / groupe à établir.");
     if (criteria.hq === "France") {
@@ -652,7 +739,7 @@
       known: !!known,
       covered,
       open: known
-        ? (r?.countries || []).filter(
+        ? (r?.documentedCountries ?? r?.countries ?? []).filter(
             (p) => !covered.includes(p) && p !== "France",
           )
         : [],
@@ -683,12 +770,13 @@
       r[k] = raw[k] === true;
     for (const [key, allowed] of Object.entries({
       groupRelation: ["Oui", "Non", "Inconnu"],
-      presenceScope: ["Entreprise", "Groupe", "Inconnu"],
+      presenceScope: ["Entreprise", "Groupe", "Réseau de partenaires", "Inconnu"],
       presenceType: [
         "Implantation",
         "Mixte",
         "Distribution",
         "Export",
+        "Réseau de partenaires",
         "Inconnue",
       ],
     })) {
@@ -704,6 +792,14 @@
       throw Error(
         "Pays non reconnu : utilisez un nom de pays explicite ou un code ISO (ex. Italie / IT). Déplacez les mentions incertaines dans les notes.",
       );
+    for (const key of ["documentedCountries", "operationalCountries"]) {
+      if (raw[key] == null) continue;
+      if (!Array.isArray(raw[key]) || raw[key].some((v) => typeof v !== "string" || !knownCountry(v)))
+        throw Error("Ventilation des pays invalide : " + key);
+      r[key] = unique(raw[key].map(country)).filter((p) => p !== "France");
+      if (r[key].some((p) => !r.countries.includes(p)))
+        throw Error("La ventilation doit être comprise dans les pays de présence : " + key);
+    }
     for (const key of ["hq", "groupHQ"]) {
       if (r[key] && !knownCountry(r[key]))
         throw Error("Pays du siège non reconnu : " + key);
@@ -730,6 +826,12 @@
     }
     if (r.checkedAt && !validDate(r.checkedAt))
       throw Error("Date de consultation invalide ou future.");
+    for (const key of Object.keys(r.sources)) {
+      if (!Object.hasOwn(raw.sourceDates || {}, key)) continue;
+      const date = text(raw.sourceDates[key]);
+      if (date && !validDate(date)) throw Error("Date de preuve invalide : " + key);
+      r.sourceDates[key] = date;
+    }
     r.coverage = {
       known: raw.coverage?.known === true,
       countries: splitCountries(raw.coverage?.countries || []),

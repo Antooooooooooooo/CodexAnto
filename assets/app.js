@@ -1,5 +1,5 @@
 /* DEGSE — interface, import local et sauvegardes. Pas d’envoi du portefeuille. */
-(() => {
+(async () => {
   "use strict";
   const D = window.DEGSE,
     $ = (id) => document.getElementById(id),
@@ -37,7 +37,13 @@
       : "";
   const historical = JSON.parse($("historicalData").textContent),
     supplied = JSON.parse($("suppliedData").textContent),
-    base = D.addContributions(D.fromLegacy(historical), supplied);
+    verified = JSON.parse($("verifiedData").textContent),
+    base = D.addContributions(D.addContributions(D.fromLegacy(historical), supplied), verified);
+  const official = verified.records.filter((e) => e.kind === "registry"),
+    documentary = verified.records.filter((e) => e.kind === "documentary");
+  $("researchSummary").textContent = `${official.length} sièges et activités vérifiés au registre · ${official.filter((e) => e.fields.registeredRevenue).length} CA des comptes de société disponibles · ${documentary.length} fiches avec nouveaux compléments documentaires · Consultation du 13/10/2026. Les champs mondiaux encore manquants sont signalés dans les fiches.`;
+  const contributionLabel = (entry) => entry.kind === "registry" ? "Registre officiel vérifié"
+    : entry.kind === "documentary" ? "Recherche documentaire" : "Complément utilisateur";
   let overrides = {},
     clients = {},
     loadedSheets = [],
@@ -54,7 +60,12 @@
     includeGroups: true,
   };
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE) || "null");
+    let saved = JSON.parse(localStorage.getItem(STORAGE) || "null");
+    if (saved?.encoding === "gzip-base64") {
+      const bytes = Uint8Array.from(atob(saved.data), (c) => c.charCodeAt(0));
+      saved = JSON.parse(await new Response(new Blob([bytes]).stream()
+        .pipeThrough(new DecompressionStream("gzip"))).text());
+    }
     if (saved?.schemaVersion === 1) {
       const validated = {};
       for (const [id, r] of Object.entries(saved.researches || {})) {
@@ -91,22 +102,35 @@
     $("notice").className = "notice" + (error ? " error" : "");
     $("notice").hidden = false;
   }
-  function persist() {
-    try {
-      localStorage.setItem(
-        STORAGE,
-        JSON.stringify({ schemaVersion: 1, researches: overrides, criteria }),
-      );
-      $("storageStatus").textContent =
-        "Modifications enregistrées dans ce navigateur. Exportez une sauvegarde JSON pour les conserver, changer de navigateur ou partager le travail.";
-    } catch {
-      $("storageStatus").textContent =
-        "Stockage local indisponible ou saturé : vos modifications restent dans cette session. Exportez immédiatement une sauvegarde JSON.";
-      notice(
-        "Les modifications sont actives, mais leur sauvegarde locale a échoué. Utilisez « Sauvegarder les recherches ».",
-        true,
-      );
-    }
+  let persistenceQueue = Promise.resolve();
+  async function persist() {
+    // Capture avant l'opération asynchrone ; les écritures successives gardent leur ordre.
+    const payload = JSON.stringify({ schemaVersion: 1, researches: overrides, criteria });
+    const operation = persistenceQueue.then(async () => {
+      try {
+        let encoded = payload;
+        if (typeof CompressionStream === "function" && typeof DecompressionStream === "function") {
+          const bytes = new Uint8Array(await new Response(new Blob([payload]).stream()
+            .pipeThrough(new CompressionStream("gzip"))).arrayBuffer());
+          let binary = "";
+          for (let i = 0; i < bytes.length; i += 8192)
+            binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+          encoded = JSON.stringify({encoding: "gzip-base64", data: btoa(binary)});
+        }
+        localStorage.setItem(STORAGE, encoded);
+        $("storageStatus").textContent =
+          "Modifications enregistrées dans ce navigateur. Exportez une sauvegarde JSON pour les conserver, changer de navigateur ou partager le travail.";
+      } catch {
+        $("storageStatus").textContent =
+          "Stockage local indisponible ou saturé : vos modifications restent dans cette session. Exportez immédiatement une sauvegarde JSON.";
+        notice(
+          "Les modifications sont actives, mais leur sauvegarde locale a échoué. Utilisez « Sauvegarder les recherches ».",
+          true,
+        );
+      }
+    });
+    persistenceQueue = operation.catch(() => {});
+    await operation;
   }
   function research(id) {
     const original = base[id] || D.emptyResearch(id);
@@ -203,6 +227,8 @@
       if ($("status").value && q.status !== $("status").value) return false;
       if ($("followup").value && D.followupStatus(r) !== $("followup").value)
         return false;
+      const state = $("registryState").value;
+      if (state && (state === "unknown" ? !!r.registryState : r.registryState !== state)) return false;
       if ($("analysis").value && r.analyzed !== ($("analysis").value === "yes"))
         return false;
       if (
@@ -261,7 +287,7 @@
   function revenue(r) {
     return r.revenue.amount !== null
       ? money(r.revenue.amount, r.revenue.currency)
-      : r.revenue.reported || "Non communiqué";
+      : r.revenue.reported || r.publishedRevenue || "Non communiqué";
   }
   function sortValue(x, key) {
     return {
@@ -337,7 +363,7 @@
               : r.groupRelation === "Non"
                 ? "Pas de groupe renseigné"
                 : "Groupe à documenter";
-          return `<tr><td><button class="company-link" data-company="${x.id}">${esc(x.name)}</button>${sub(x.id)}${!c ? badge("Hors portefeuille importé") : c.duplicate ? badge("Doublon Excel", "warning") : ""}</td><td>${esc(c?.direction || D.UNKNOWN)}${sub(c?.segment || "MDM / HDM / SPES non renseigné")}</td><td>${esc(c?.vrc || D.UNKNOWN)}</td><td>${esc(c?.sector || D.UNKNOWN)}</td><td>${esc(c ? money(c.caOrange) : D.UNKNOWN)}${sub("CA de la relation Orange")}</td><td>${r.countries.length ? r.countries.map((p) => `<span class="country-label">${esc(p)}</span>`).join("") : esc(D.UNKNOWN)}${sub(`${r.presenceScope} · ${r.presenceType}`)}${r.uncertainCountries.length ? badge("Mentions incertaines", "warning") : ""}</td><td>${esc(r.sector || D.UNKNOWN)}</td><td>${esc(r.hq || D.UNKNOWN)}${sub(groupInfo)}${r.hq && !D.proof(r, "hq") ? badge("Siège à sourcer", "warning") : ""}</td><td>${esc(revenue(r))}${sub(`${r.revenue.year || "Exercice non renseigné"} · ${r.revenue.scope}`)}${r.revenue.reported && r.revenue.amount === null ? badge("Montant historique", "warning") : ""}</td><td>${badge(r.analyzed ? "Analysé" : "Non analysé", r.analyzed ? "blue" : "neutral")}${sub(r.checkedAt || "Date non renseignée")}${sub(D.followupStatus(r))}${r.contributions.length ? badge("Complément utilisateur", "blue") : ""}${r.reviewed ? sub("Analyse relue") : r.analyzed ? sub("À revalider") : ""}${link(r.sources.presence, "Présence") || (r.legacy?.verification?.source ? link(r.legacy.verification.source, "Source historique") : "")}</td><td>${badge(q.status, q.tone)}${sub(q.reasons[0] || "Critères satisfaits")}</td><td>${op.known ? esc(op.open.join(", ") || "Aucun écart identifié") : "Couverture Orange à renseigner"}${sub(op.known ? "Pistes à valider commercialement" : "Aucune opportunité déduite automatiquement")}</td></tr>`;
+          return `<tr><td><button class="company-link" data-company="${x.id}">${esc(x.name)}</button>${sub(x.id)}${r.registryState === "Fermée" ? badge("Entité fermée au registre", "warning") : ""}${!c ? badge("Hors portefeuille importé") : c.duplicate ? badge("Doublon Excel", "warning") : ""}</td><td>${esc(c?.direction || D.UNKNOWN)}${sub(c?.segment || "MDM / HDM / SPES non renseigné")}</td><td>${esc(c?.vrc || D.UNKNOWN)}</td><td>${esc(c?.sector || D.UNKNOWN)}</td><td>${esc(c ? money(c.caOrange) : D.UNKNOWN)}${sub("CA de la relation Orange")}</td><td>${r.countries.length ? r.countries.map((p) => `<span class="country-label">${esc(p)}</span>`).join("") : esc(D.UNKNOWN)}${sub(`${r.presenceScope} · ${r.presenceType}`)}${r.uncertainCountries.length ? badge("Mentions incertaines", "warning") : ""}</td><td>${esc(r.sector || D.UNKNOWN)}${r.registryActivity && r.registryActivity !== r.sector ? sub(`Activité déclarée : ${r.registryActivity} · ${r.registryNAF}`) : ""}</td><td>${esc(r.hq || D.UNKNOWN)}${sub(groupInfo)}${r.hq && !D.proof(r, "hq") ? badge("Siège à sourcer", "warning") : ""}</td><td>${esc(revenue(r))}${sub(`${r.revenue.year || "Exercice non renseigné"} · ${r.revenue.scope}`)}${r.revenue.reported && r.revenue.amount === null ? badge("Montant historique", "warning") : ""}${r.registeredRevenue ? sub(`Comptes de la société : ${r.registeredRevenue.split(" — comptes")[0]} (périmètre distinct)`): ""}</td><td>${badge(r.analyzed ? "Analysé" : "Non analysé", r.analyzed ? "blue" : "neutral")}${sub(r.checkedAt ? `Dernière consultation : ${r.checkedAt}` : "Date non renseignée")}${sub(D.followupStatus(r))}${D.unique(r.contributions.map(contributionLabel)).map((label) => badge(label,"blue")).join("")}${r.reviewed ? sub("Analyse relue") : r.analyzed ? sub("À revalider") : ""}${link(r.sources.presence, "Présence") || (r.legacy?.verification?.source ? link(r.legacy.verification.source, "Source historique") : "")}</td><td>${badge(q.status, q.tone)}${sub(q.reasons[0] || "Critères satisfaits")}</td><td>${op.known ? esc(op.open.join(", ") || "Aucun écart identifié") : "Couverture Orange à renseigner"}${sub(op.known ? "Pistes à valider commercialement" : "Aucune opportunité déduite automatiquement")}</td></tr>`;
         })
         .join("") ||
       '<tr><td colspan="12" class="empty">Aucune entreprise ne correspond aux filtres. Réinitialisez-les ou importez le portefeuille.</td></tr>';
@@ -583,6 +609,8 @@
       worldEmployees: r.worldEmployees,
       followup: r.followup,
       countries: r.countries.join(" ; "),
+      documentedCountries: (r.documentedCountries || []).join(" ; "),
+      operationalCountries: (r.operationalCountries || []).join(" ; "),
       uncertainCountries: r.uncertainCountries.join("\n"),
       revenueAmount: r.revenue.amount ?? "",
       revenueCurrency: r.revenue.currency,
@@ -601,6 +629,7 @@
     for (const key of ["reviewed", "noSignal"])
       form.elements.namedItem(key).checked = r[key];
     form.elements.namedItem("coverageKnown").checked = r.coverage.known;
+    form.elements.namedItem("countryBreakdownKnown").checked = r.documentedCountries !== null || r.operationalCountries !== null;
     form.elements.namedItem("checkedAt").max = new Date()
       .toISOString()
       .slice(0, 10);
@@ -619,33 +648,28 @@
     }
     $("formError").hidden = true;
     $("suppliedDetail").hidden = !r.contributions.length;
+    const displayValue = (value) => typeof value === "object" ? JSON.stringify(value) : value;
+    $("registryDetail").hidden = !r.registeredName;
+    $("registryDetail").innerHTML = `<span class="section-kicker">REGISTRE OFFICIEL · CONSTAT DU 13/10/2026</span><dl>${[
+      ["Nom enregistré / SIREN", `${r.registeredName} · ${r.siren}`],
+      ["Pays du siège déclaré", r.registeredCountry], ["État administratif", r.registryState],
+      ["Activité déclarée / code NAF", `${r.registryActivity} · ${r.registryNAF}`],
+      ["CA des comptes de la société", r.registeredRevenue || "Non disponible dans le registre consulté"],
+    ].map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl><p class="muted">Le CA des comptes de la société n'est pas assimilé au CA mondial consolidé du groupe. La géographie de ces comptes n'est pas isolée.</p>${r.registryState === "Fermée" ? '<p class="notice error">Entité fermée : vérifier le compte actif successeur. Le siège affiché est le dernier déclaré.</p>' : ""}<p>${esc(r.researchConclusion)}</p><p class="muted">À compléter / vérifier : ${esc(D.missingInfo(r).join(" · ") || "Champs renseignés, preuves à relire")}</p>${r.publishedRevenue ? `<p>CA publié sans exercice établi : ${esc(r.publishedRevenue)}</p>` : ""}`;
     $("suppliedDetail").innerHTML =
-      r.contributions
-        .map(
-          (entry) =>
-            `<h3>Complément utilisateur · lot ${esc(entry.lot)}, ligne ${esc(entry.line)}</h3><p class="muted">Reçu le ${esc(entry.receivedOn)}. Date de consultation des sources non fournie ; liens cités, sans nouvelle vérification Internet.</p><dl class="raw-data">${Object.entries(
-              entry.originalFields || {},
-            )
-              .filter(([key]) => !["line", "siren"].includes(key))
-              .map(
-                ([key, value]) =>
-                  `<div><dt>${esc({ name: "Entreprise", hq: "Siège de l’entité en France", countries: "Pays / couverture déclarés", sector: "Secteur détaillé", countryCount: "Nombre de pays et périmètre", foreignSites: "Sites / filiales à l’étranger", presenceDetails: "Nature de présence publiée", revenueReported: "CA mondial publié", franceRevenue: "CA France publié", worldEmployees: "Effectifs mondiaux", sourceText: "Sources citées", notes: "Justification" }[key] || key)}</dt><dd>${esc(value)}</dd></div>`,
-              )
-              .join(
-                "",
-              )}</dl><p>${(entry.sourceLinks || []).map((source) => link(source.url, source.label)).join(" · ")}</p>${(entry.cautions || []).length ? `<p class="muted">${entry.cautions.map(esc).join("<br>")}</p>` : ""}`,
-        )
-        .join("") +
-      (r.changes.length
-        ? `<details><summary>Différences conservées avec les informations précédentes</summary><div class="legacy-note">${esc(JSON.stringify(r.changes, null, 2))}</div></details>`
-        : "");
+      [...r.contributions].sort((a,b) => (a.kind === "documentary" ? 0 : a.kind === "registry" ? 2 : 1) - (b.kind === "documentary" ? 0 : b.kind === "registry" ? 2 : 1)).map((entry) => {
+        const explored = entry.exploredSources || [];
+        const isResearch = ["registry", "documentary"].includes(entry.kind);
+        return `<details ${entry.kind === "documentary" ? "open" : ""}><summary>${esc(contributionLabel(entry))}${isResearch ? ` · ${esc(entry.checkedAt)}` : ` · lot ${esc(entry.lot)}, ligne ${esc(entry.line)}`}</summary><p class="muted">${isResearch ? `Sources citées ci-dessous consultées le ${esc(entry.checkedAt)} ; constats limités aux champs décrits dans cette pièce.` : `Reçu le ${esc(entry.receivedOn)}. Date de consultation des sources non fournie ; liens cités par l’utilisateur.`}</p><dl class="raw-data">${Object.entries(entry.originalFields || {}).filter(([key]) => !["line", "siren"].includes(key)).map(([key,value]) => `<div><dt>${esc({name:"Entreprise", hq:"Pays du siège de l’entité", countries:"Pays / couverture déclarés", countriesText:"Pays cités", operationalCountries:"Pays avec implantation propre documentée", sector:"Secteur détaillé", countryCount:"Nombre de pays et périmètre", foreignSites:"Sites / filiales à l’étranger", presenceDetails:"Nature de présence publiée", revenueReported:"CA mondial publié", revenue:"CA daté / devise / périmètre", franceRevenue:"CA France publié", worldEmployees:"Effectifs mondiaux", sourceText:"Sources citées", notes:"Justification"}[key] || key)}</dt><dd>${esc(displayValue(value))}</dd></div>`).join("")}</dl><p>${esc(entry.notes)}</p><p>${(entry.sourceLinks || []).map((source) => link(source.url, source.label)).join(" · ")}</p>${(entry.cautions || []).length ? `<p class="muted">${entry.cautions.map(esc).join("<br>")}</p>` : ""}${explored.length ? `<details><summary>Références explorées (${explored.length}) — rattachement à vérifier</summary><p class="muted">Ces liens sont des pistes de recherche. Une page accessible n'est pas une preuve de son rattachement au client ni d'implantation internationale.</p><ul>${explored.map((source) => `<li>${link(source.url, source.title || source.url)} · ${esc(source.status === "readable" ? "Texte accessible, rattachement à vérifier" : "Indisponible")} ${esc(source.status === "readable" ? "" : source.error || "")}</li>`).join("")}</ul></details>` : ""}</details>`;
+      }).join("") +
+      (r.changes.length ? `<details><summary>Différences conservées avec les informations précédentes</summary><div class="legacy-note">${esc(JSON.stringify(r.changes, null, 2))}</div></details>` : "");
     $("companyDialog").showModal();
   }
   $("tableBody").addEventListener("click", (e) => {
     const b = e.target.closest("[data-company]");
     if (b) detail(b.dataset.company);
   });
-  $("researchForm").addEventListener("submit", (e) => {
+  $("researchForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
       const f = e.target,
@@ -674,6 +698,9 @@
       r.hq = D.country(r.hq);
       r.groupHQ = D.country(r.groupHQ);
       r.countries = D.splitCountries(get("countries"));
+      const breakdownKnown = f.elements.namedItem("countryBreakdownKnown").checked;
+      r.documentedCountries = breakdownKnown ? D.splitCountries(get("documentedCountries")) : null;
+      r.operationalCountries = breakdownKnown ? D.splitCountries(get("operationalCountries")) : null;
       r.uncertainCountries = get("uncertainCountries")
         .split("\n")
         .map(D.text)
@@ -691,6 +718,11 @@
           get(k + "Source"),
         ]),
       );
+      r.sourceDates = { ...(prior.sourceDates || {}) };
+      for (const field of Object.keys(r.sources)) {
+        if (r.checkedAt !== prior.checkedAt || r.sources[field] !== prior.sources[field])
+          r.sourceDates[field] = r.checkedAt;
+      }
       r.coverage = {
         known: f.elements.namedItem("coverageKnown").checked,
         countries: D.splitCountries(get("coverageCountries")),
@@ -708,7 +740,7 @@
         },
       ];
       overrides[activeId] = validated;
-      persist();
+      await persist();
       populate();
       render();
       $("companyDialog").close();
@@ -729,7 +761,7 @@
     f.elements.namedItem("includeGroups").checked = criteria.includeGroups;
     $("methodDialog").showModal();
   });
-  $("criteriaForm").addEventListener("submit", (e) => {
+  $("criteriaForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const targets = checked("targetCountries");
     if (!targets.length) {
@@ -744,7 +776,7 @@
       operationalOnly: f.elements.namedItem("operationalOnly").checked,
       includeGroups: f.elements.namedItem("includeGroups").checked,
     };
-    persist();
+    await persist();
     render();
     $("methodDialog").close();
     notice(
@@ -766,6 +798,7 @@
     "gap",
     "countryFilters",
     "followup",
+    "registryState",
   ])
     $(id).addEventListener("change", () => {
       page = 1;
@@ -790,6 +823,7 @@
       "minRevenue",
       "gap",
       "followup",
+      "registryState",
     ])
       $(id).value = "";
     $("scope").value = Object.keys(clients).length ? "portfolio" : "all";
@@ -880,7 +914,7 @@
         pending[id] = r;
       }
       overrides = { ...overrides, ...pending };
-      persist();
+      await persist();
       populate();
       render();
       notice(
@@ -941,6 +975,10 @@
       "Informations manquantes",
       "Lots utilisateur",
       "Liens cités dans les lots",
+      "Registre - Nom déclaré", "Registre - Pays siège", "Registre - État administratif",
+      "Registre - Code NAF", "Registre - Activité déclarée", "Registre - CA société, exercice, périmètre",
+      "Recherche - Pays établis par la source actuelle", "Recherche - Pays avec implantation propre documentée",
+      "Recherche - CA publié sans exercice établi", "Recherche - Dates des preuves par champ",
     ];
     const rows = visible.map(({ id, name, c, r, q, op }) => [
       id,
@@ -988,6 +1026,11 @@
         .flatMap((e) => e.sourceLinks || [])
         .map((source) => source.url)
         .join(" | "),
+      r.registeredName, r.registeredCountry, r.registryState, r.registryNAF, r.registryActivity,
+      r.registeredRevenue,
+      r.documentedCountries === null ? "Ventilation inconnue" : r.documentedCountries.join(" | "),
+      r.operationalCountries === null ? "Ventilation inconnue" : r.operationalCountries.join(" | "),
+      r.publishedRevenue, JSON.stringify(r.sourceDates),
     ]);
     download(
       "\ufeff" +

@@ -11,6 +11,8 @@ data = json.loads((ROOT / 'data/recherches-historiques.json').read_text())
 html = html.replace('__HISTORICAL_DATA__', json.dumps(data, ensure_ascii=False).replace('<', '\\u003c'))
 supplied = json.loads((ROOT / 'data/complements-utilisateur.json').read_text())
 html = html.replace('__SUPPLIED_DATA__', json.dumps(supplied, ensure_ascii=False).replace('<', '\\u003c'))
+verified = json.loads((ROOT / 'data/recherches-verifiees.json').read_text())
+html = html.replace('__VERIFIED_DATA__', json.dumps(verified, ensure_ascii=False).replace('<', '\\u003c'))
 html = html.replace('<link rel="stylesheet" href="assets/styles.css">', '<style>\n' + (ROOT / 'assets/styles.css').read_text() + '\n</style>')
 for filename in ['vendor/exceljs-4.4.0.min.js', 'assets/core.js', 'assets/app.js']:
     content = (ROOT / filename).read_text().replace('</script', '<\\/script')

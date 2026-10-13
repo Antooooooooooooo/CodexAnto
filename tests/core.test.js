@@ -352,3 +352,106 @@ test("CSV : formules neutralisées et guillemets échappés", () => {
   assert.equal(D.csvCell("A;B"), '"A;B"');
   assert.equal(D.csvCell('"test"'), '"""test"""');
 });
+
+function verifiedRecords() {
+  const {base: previous, legacy, supplied} = suppliedRecords();
+  const verified = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, '../data/recherches-verifiees.json')));
+  return {base: D.addContributions(previous, verified), previous, verified, legacy, supplied};
+}
+test('Registre : 719 SIREN exacts, cinq sièges étrangers, six fermetures, données Excel absentes des constats', () => {
+  const {base, verified, legacy} = verifiedRecords();
+  const entries = verified.records.filter(e => e.kind === 'registry');
+  assert.equal(entries.length, 719);
+  assert.equal(new Set(entries.map(e => e.siren)).size, 719);
+  assert.equal(entries.filter(e => e.fields.registeredCountry !== 'France').length, 5);
+  assert.equal(entries.filter(e => e.fields.registryState === 'Fermée').length, 6);
+  for (const e of entries) {
+    assert.match(e.fieldSources.hq, new RegExp('q=' + e.siren + '$'));
+    const r = base[e.siren];
+    assert.ok(r.registryActivity && r.registryNAF);
+    assert.equal(r.hq, e.fields.registeredCountry);
+    assert.equal(r.reviewed, false);
+    assert.equal(D.proof(r, 'hq'), true);
+    assert.equal(D.qualify(r, criteria).status, 'À qualifier');
+    assert.deepEqual(r.legacy.verification, legacy.verification[e.siren] || {});
+    D.validateResearch(r);
+  }
+});
+test('Comptes sociaux : 588 CA avec exercice distincts du CA mondial, aucune attribution au groupe', () => {
+  const {base} = verifiedRecords();
+  assert.equal(Object.values(base).filter(r => r.registeredRevenue).length, 588);
+  for (const r of Object.values(base).filter(r => r.registeredRevenue)) {
+    assert.match(r.registeredRevenue, /EUR — \d{4} — comptes publiés pour la société SIREN/);
+    assert.match(r.registeredRevenue, /géographie non isolée, hors consolidation/);
+  }
+  assert.notEqual(base['490673423'].revenue.amount, 74370462);
+  assert.notEqual(base['399339431'].revenue.amount, 134434851);
+});
+test('Nouvelles recherches : pays historiques et 16 lots conservés, sources limitées aux nouveaux constats', () => {
+  const {base, previous, supplied} = verifiedRecords();
+  assert.deepEqual(base['037320595'].countries, previous['037320595'].countries);
+  for (const e of supplied.records)
+    assert.deepEqual(base[e.siren].contributions.find(x => x.id === e.id), e);
+  for (const p of previous['331211466'].countries) assert.ok(base['331211466'].countries.includes(p));
+  assert.deepEqual(base['331211466'].operationalCountries, ['États-Unis']);
+  assert.equal(base['955803929'].sources.presence, '');
+  assert.equal(base['387715360'].sources.presence, '');
+  assert.deepEqual(base['387715360'].documentedCountries, []);
+  assert.deepEqual(D.opportunities({coverageKnown:true, coverage:[]}, base['387715360']).open, []);
+});
+test('Ventilation : un distributeur italien ne confirme pas une implantation italienne ; pays historiques non corroborés exclus', () => {
+  const {base} = verifiedRecords();
+  const r = base['331211466'];
+  r.reviewed = true;
+  assert.notEqual(D.qualify(r, {...criteria, targets:['Italie']}).status, 'Cible confirmée');
+  assert.equal(D.qualify(r, {...criteria, targets:[D.OTHER]}).status, 'Cible confirmée');
+  r.documentedCountries = ['Italie','États-Unis'];
+  assert.notEqual(D.qualify(r, {...criteria, targets:['Italie']}).status, 'Cible confirmée');
+  assert.equal(D.qualify(r, {...criteria, targets:['Italie'], operationalOnly:false}).status, 'Cible confirmée');
+  assert.throws(() => D.validateResearch({...r, operationalCountries:['Japon'], countries:['Italie']}), /ventilation/);
+});
+test('Partenaires indépendants et entités fermées ne deviennent pas des cibles opérationnelles', () => {
+  const {base} = verifiedRecords();
+  const network = base['349423301'];
+  network.reviewed = true;
+  assert.notEqual(D.qualify(network, criteria).status, 'Cible confirmée');
+  assert.equal(D.qualify(network, {...criteria, operationalOnly:false}).status, 'Cible confirmée');
+  const closed = researched(); closed.registryState = 'Fermée';
+  assert.notEqual(D.qualify(closed, criteria).status, 'Cible confirmée');
+});
+test('Rapport antérieur : FY2025 conservé, CA vérifié FY2024 archivé sans réattribuer la source récente', () => {
+  const {base, previous} = verifiedRecords();
+  assert.deepEqual(base['305823296'].revenue, previous['305823296'].revenue);
+  assert.equal(base['305823296'].sources.revenue, '');
+  const oldReport = base['305823296'].contributions.find(e => e.kind === 'documentary');
+  assert.equal(oldReport.fields.revenue.amount, 2541900000);
+  assert.equal(oldReport.fields.revenue.year, '2024');
+  assert.equal(base['378317721'].revenue.amount, 6405874000);
+  assert.equal(base['399384890'].revenue.amount, 37000000);
+  assert.equal(base['399918531'].revenue.currency, 'Autre');
+  assert.equal(base['592052302'].revenue.amount, 11245200000);
+});
+test('Dates par champ : une consultation du registre ne revalide pas les autres preuves', () => {
+  const r = researched();
+  r.checkedAt = '2026-10-13';
+  r.sourceDates = {presence:'', hq:'2026-10-13'};
+  r.sources.hq = 'https://example.com/registry';
+  assert.equal(D.proof(r,'presence'), false);
+  assert.equal(D.proof(r,'hq'), true);
+  assert.notEqual(D.qualify(r, criteria).status, 'Cible confirmée');
+  assert.deepEqual(D.validateResearch(r).sourceDates, r.sourceDates);
+});
+test('Migration des saisies : nouveaux registres et pièces conservés sans écraser le siège saisi localement', () => {
+  const {base, previous} = verifiedRecords();
+  const saved = structuredClone(previous['378317721']);
+  saved.hq = 'Suisse'; saved.reviewed = true;
+  saved.sources.hq = 'https://example.com/other-source';
+  const migrated = D.reconcileResearch(base['378317721'], saved);
+  assert.equal(migrated.hq, 'Suisse');
+  assert.equal(migrated.registeredCountry, 'France');
+  assert.equal(migrated.sources.hq, saved.sources.hq);
+  assert.equal(migrated.reviewed, false);
+  assert.equal(migrated.contributions.filter(e=>e.kind === 'registry').length, 1);
+  D.validateResearch(migrated);
+  assert.deepEqual(D.reconcileResearch(base['378317721'], migrated), migrated);
+});

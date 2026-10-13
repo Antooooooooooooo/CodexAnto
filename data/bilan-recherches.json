@@ -1,0 +1,25 @@
+{
+  "consultation": "2026-10-13",
+  "perimetre": "719 SIREN historiques rapprochés du portefeuille fourni ; aucun contenu du classeur publié.",
+  "sieges_et_activites_verifies": 719,
+  "sieges_france": 714,
+  "sieges_hors_france": 5,
+  "entites_fermees": 6,
+  "ca_comptes_societe_disponibles": 588,
+  "fiches_avec_complements_documentaires": 59,
+  "fiches_avec_pays_documentes_par_nouvelle_source": 34,
+  "fiches_avec_ventilation_des_implantations_propres": 32,
+  "ca_mondiaux_dates_dans_les_pieces": 13,
+  "ca_mondiaux_dont_source_affectee_au_chiffre_affiche": 10,
+  "fiches_avec_champs_encore_manquants_ou_a_preciser": 715,
+  "recherches_a_reprendre_par_utilisateur": 9,
+  "limites": [
+    "Le CA des comptes d'une société n'est ni un CA mondial consolidé de groupe ni un CA France géographiquement isolé.",
+    "Les sources explorées restent des pistes tant que leur identité et leur contenu ne sont pas rapprochés : accessibilité ne signifie pas validation factuelle.",
+    "Les pays servis, les filiales, les bureaux, les usines et les partenaires sont distingués ; les nombres mondiaux ne deviennent pas des nombres hors France.",
+    "Les rapports plus anciens sont conservés dans les pièces sans remplacer un exercice plus récent fourni par l'utilisateur ; la source ancienne n'atteste pas ce chiffre récent.",
+    "Une devise non explicitée reste à préciser ; aucune conversion de change ou date d'exercice n'est inventée.",
+    "Les champs internationaux ne sont pas tous renseignés. Une information non trouvée ne prouve pas l'absence de présence ou de potentiel international.",
+    "Les constats documentaires et les recherches historiques doivent être relus avant confirmation commerciale."
+  ]
+}

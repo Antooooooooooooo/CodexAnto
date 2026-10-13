@@ -11,7 +11,7 @@ Analyseur local du portefeuille clients Orange DEGSE, centré sur les opportunit
 5. Compléter l’analyse avec des sources, une date de consultation, le périmètre de la présence et du CA mondial. Cocher la relecture seulement après avoir vérifié les faits, les preuves et l’identité de l’entreprise.
 6. Exporter la vue filtrée en CSV pour le travail commercial et les recherches en JSON pour les conserver ou les partager.
 
-Le portefeuille Excel reste en mémoire pendant la session : il faut le réimporter après un rechargement. Les analyses modifiées et les critères sont conservés dans le stockage local du navigateur, lorsque celui-ci est disponible. Une sauvegarde JSON conserve les données structurées, les recherches historiques et les versions précédentes. L’import JSON conserve les critères locaux et remet les analyses importées en attente de relecture. Il ne modifie pas le fichier Excel. Le CSV exporte toute la vue filtrée, pas uniquement la page visible.
+Le portefeuille Excel reste en mémoire pendant la session : il faut le réimporter après un rechargement. Les analyses modifiées et les critères sont conservés dans le stockage local du navigateur, lorsque celui-ci est disponible. Les navigateurs récents compressent cette sauvegarde pour éviter la saturation liée aux nombreuses sources ; les anciens enregistrements JSON restent compatibles. Les exports JSON restent lisibles et complets. Une sauvegarde JSON conserve les données structurées, les recherches historiques et les versions précédentes. L’import JSON conserve les critères locaux et remet les analyses importées en attente de relecture. Il ne modifie pas le fichier Excel. Le CSV exporte toute la vue filtrée, pas uniquement la page visible.
 
 ## Qualification
 
@@ -31,7 +31,7 @@ La couverture Orange vient d’une colonne Excel explicite, ou, à défaut, d’
 
 ## Données et périmètre
 
-Les **721 SIREN historiques** sont repris du HTML fourni, avec les deux jeux de recherches et la liste d’anciens classements. Les anciennes mentions « CONFIRMÉ » sont archivées, sans être reconduites comme confirmations actuelles. Les URL anciennes restent disponibles, mais ne sont pas affectées arbitrairement comme preuve de chaque champ. Les recherches historiques **n’ont pas été revalidées sur Internet**.
+Les **721 SIREN historiques** sont repris du HTML fourni, avec les deux jeux de recherches et la liste d’anciens classements. Les anciennes mentions « CONFIRMÉ » sont archivées, sans être reconduites comme confirmations actuelles. Les URL anciennes restent disponibles, mais ne sont pas affectées arbitrairement comme preuve de chaque champ. Les archives restent inchangées. Les nouvelles vérifications Internet sont conservées séparément et ne revalident pas automatiquement tous les anciens champs.
 
 Les recherches sans correspondance dans le classeur importé restent consultables via les périmètres « Portefeuille + recherches » et « Recherches hors portefeuille ». Les informations commerciales sont affichées comme non renseignées pour ces entreprises.
 
@@ -39,7 +39,23 @@ Les **lots utilisateur 14, 15 et 16** ajoutent **16 compléments** (6, 6 et 4 fi
 
 Les fiches affichent désormais le nombre de pays et son périmètre, les sites / filiales à l’étranger, les précisions sur la présence, les effectifs mondiaux et le CA France publié. Les réseaux de partenaires, les pays commerciaux, les consortiums et les implantations propres restent distincts. Le CA France de Micromania et le volume d’affaires Bechtle France ne sont pas traités comme des CA mondiaux consolidés.
 
-Le périmètre **« Portefeuille déjà analysé »** limite la vue aux entreprises analysées et présentes dans l’Excel importé. Le filtre **« Suivi des recherches »** permet de consulter les fiches à compléter ou mises de côté pour une recherche par l’utilisateur. Un refus d’accès connu au site Tiflex est enregistré dans cette dernière file ; les autres fiches incomplètes ne sont pas déclarées inaccessibles sans contrôle. Les lignes omises des lots ne sont pas assimilées à des entreprises sans présence internationale.
+Le périmètre **« Portefeuille déjà analysé »** limite la vue aux entreprises analysées et présentes dans l’Excel importé. Le filtre **« Suivi des recherches »** permet de consulter les fiches à compléter ou mises de côté pour une recherche par l’utilisateur. Les fiches dont les références explorées sont indisponibles, ou dont une source concerne un homonyme, peuvent être mises de côté dans la file de recherche manuelle. Le refus historique de Tiflex reste archivé ; sa consultation actuelle a permis de retirer ce blocage du suivi. Les lignes omises des lots ne sont pas assimilées à des entreprises sans présence internationale.
+
+### Vérifications du 13 octobre 2026
+
+`data/recherches-verifiees.json` ajoute les constats suivants sur les **719 SIREN historiques présents dans le classeur fourni** :
+
+- **719 identités, sièges déclarés et activités NAF vérifiés**, par rapprochement exact du SIREN dans l’API publique Recherche d’entreprises. Libellés NAF rév. 2 issus de l’INSEE, nomenclature en vigueur en 2026.
+- **714 sièges en France, 5 hors France** (Monaco, Pays-Bas, Luxembourg) et **6 entités fermées**. Les entités fermées sont filtrables et nécessitent une vérification du compte actif successeur ; elles ne sont pas confirmées automatiquement.
+- **588 CA des comptes de société** avec leur exercice, affichés séparément du CA mondial. Ces montants ne deviennent pas des revenus consolidés de groupe ni des CA France géographiquement isolés.
+- **59 fiches avec compléments documentaires** : sites corporate, mentions légales, brochures ou rapports financiers. **34 fiches** ont une liste de pays corroborée par une nouvelle source ; **32** ont une ventilation des pays avec implantation propre. Ces listes peuvent être partielles ou historiques et leurs limites sont explicites.
+- **13 CA mondiaux datés dans les pièces**, dont **10 affectés au chiffre actuellement affiché**. Un rapport plus ancien reste dans les pièces sans remplacer un exercice plus récent fourni. Les chiffres sans année et les devises non explicitées restent signalés à préciser.
+
+**Les sept informations demandées ne sont pas toutes établies pour toutes les entreprises.** Le bilan reproductible `data/bilan-recherches.json` dénombre les champs encore manquants ou à préciser. Le secteur déclaré au registre est distingué de la description détaillée issue d’une recherche corporate. Une absence de résultat n’est pas une absence de potentiel.
+
+Les références explorées sont accessibles dans un volet séparé : une page accessible ou un résultat de moteur reste une piste tant que son rattachement au client et ses faits ne sont pas vérifiés. Seuls les liens cités pour un constat alimentent ses preuves. Chaque champ de preuve conserve sa date ; une consultation du registre ne revalide pas une ancienne présence mondiale.
+
+Les pays historiques et les lots utilisateur sont conservés. Les nouveaux pays corroborés et les pays avec implantation propre sont éditables dans la fiche. Quand cette ventilation est connue, la qualification et les pistes de couverture utilisent les pays corroborés ; les critères opérationnels exigent un pays cible avec implantation propre. Un réseau de partenaires indépendants reste distinct. Les sources homonymes de QUADRA/ARCAD et MATHEZ/chocolatier sont signalées et écartées des preuves actuelles.
 
 Les doublons SIREN sont signalés et la première ligne est conservée, sans addition automatique de CA. Les zéros initiaux des SIREN sont préservés. L’onglet facultatif **Détail Clients** complète les informations de groupe ; leur onglet, ligne et colonnes d’origine restent consultables. Les formules Excel ne sont pas recalculées par le navigateur : leurs résultats doivent avoir été enregistrés dans le classeur.
 
@@ -49,11 +65,12 @@ Aucun fichier ni recherche n’est envoyé à un service externe par l’analyse
 
 ## Sources et validation
 
-Les fichiers maintenables sont `index.template.html`, `assets/core.js` (règles métier), `assets/app.js` (interface/import/export), `assets/styles.css` et `data/recherches-historiques.json`. `analyseurcode.html` est l’artefact autonome à distribuer.
+Les fichiers maintenables sont `index.template.html`, `assets/core.js` (règles métier), `assets/app.js` (interface/import/export), `assets/styles.css` et `data/recherches-historiques.json`, `data/complements-utilisateur.json` et `data/recherches-verifiees.json`. `analyseurcode.html` est l’artefact autonome à distribuer.
 
 ```sh
 cd /workspace/CodexAnto
 python scripts/build.py
+node scripts/report_research.js
 node --test tests/core.test.js
 python tests/browser_test.py
 ```
