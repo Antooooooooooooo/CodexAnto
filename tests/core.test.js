@@ -53,6 +53,88 @@ test("Pays : cinq zones ciblées, Espagne et Chine classées Autre, Pays-Bas con
   assert.ok(D.knownCountry("Pays-Bas"));
   assert.equal(D.knownCountry("Europe à confirmer"), false);
 });
+function suppliedRecords() {
+  const path = require("node:path");
+  const legacy = JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, "../data/recherches-historiques.json"),
+    ),
+  );
+  const supplied = JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, "../data/complements-utilisateur.json"),
+    ),
+  );
+  return {
+    legacy,
+    supplied,
+    base: D.addContributions(D.fromLegacy(legacy), supplied),
+  };
+}
+test("Lots 14–16 : seize compléments sans doublons, originaux conservés et aucune date de consultation inventée", () => {
+  const { legacy, supplied, base } = suppliedRecords();
+  assert.equal(supplied.records.length, 16);
+  assert.equal(Object.keys(base).length, 721);
+  for (const entry of supplied.records) {
+    const r = base[entry.siren];
+    assert.equal(r.contributions.length, 1);
+    assert.deepEqual(r.contributions[0].originalFields, entry.originalFields);
+    assert.deepEqual(
+      r.legacy.verification,
+      legacy.verification[entry.siren] || {},
+    );
+    assert.deepEqual(r.legacy.enriched, legacy.enriched[entry.siren] || {});
+    assert.equal(r.reviewed, false);
+    assert.equal(r.checkedAt, "");
+    assert.notEqual(D.qualify(r, criteria).status, "Cible confirmée");
+    assert.deepEqual(D.validateResearch(r).contributions, r.contributions);
+  }
+  assert.deepEqual(base["331211466"].countries, [
+    "Italie",
+    "États-Unis",
+    "Chine",
+    "Inde",
+  ]);
+});
+test("CA France et CA mondial distincts ; revenus du groupe, devise et exercice préservés", () => {
+  const { base } = suppliedRecords();
+  assert.equal(base["418096392"].revenue.amount, null);
+  assert.match(base["418096392"].franceRevenue, /449,4/);
+  assert.equal(base["378317721"].revenue.amount, 6410000000);
+  assert.equal(base["378317721"].revenue.scope, "Groupe");
+  assert.match(base["378317721"].franceRevenue, /volume d’affaires France/);
+  assert.equal(base["542015516"].revenue.currency, "CHF");
+  assert.equal(base["542015516"].groupHQ, "Suisse");
+  assert.equal(base["390609253"].revenue.year, "2025");
+});
+test("Réseaux et périmètres : nombres publiés conservés sans inventer des implantations propres", () => {
+  const { base } = suppliedRecords();
+  assert.match(base["955803929"].countryCount, /partenaires/);
+  assert.match(base["955803929"].foreignSites, /France et Monaco/);
+  assert.equal(base["955803929"].presenceType, "Distribution");
+  assert.equal(base["391371101"].presenceType, "Inconnue");
+  assert.match(base["391371101"].presenceDetails, /consortium/);
+  assert.equal(base["333372522"].countries.length, 0);
+  assert.equal(
+    D.followupStatus(base["761200773"]),
+    "À rechercher par l’utilisateur",
+  );
+});
+test("Saisie locale conservée lors d’un nouveau lot ; compléments, champs nouveaux et différences restent visibles", () => {
+  const { base } = suppliedRecords(),
+    saved = D.emptyResearch("378317721");
+  Object.assign(saved, {
+    sector: "Secteur saisi par analyste",
+    reviewed: true,
+  });
+  const r = D.reconcileResearch(base["378317721"], saved);
+  assert.equal(r.sector, "Secteur saisi par analyste");
+  assert.equal(r.contributions.length, 1);
+  assert.ok(r.countryCount);
+  assert.equal(r.reviewed, false);
+  assert.ok(r.changes.some((c) => c.field === "sector"));
+  assert.deepEqual(D.reconcileResearch(base["378317721"], r), r);
+});
 test("Siège étranger accepté par défaut et siège français exigible explicitement", () => {
   const r = researched();
   r.hq = "Finlande";

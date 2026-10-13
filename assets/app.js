@@ -36,7 +36,8 @@
       ? `<a href="${esc(D.safeURL(u))}" target="_blank" rel="noopener noreferrer">${esc(label)} ↗</a>`
       : "";
   const historical = JSON.parse($("historicalData").textContent),
-    base = D.fromLegacy(historical);
+    supplied = JSON.parse($("suppliedData").textContent),
+    base = D.addContributions(D.fromLegacy(historical), supplied);
   let overrides = {},
     clients = {},
     loadedSheets = [],
@@ -108,7 +109,12 @@
     }
   }
   function research(id) {
-    return overrides[id] || base[id] || D.emptyResearch(id);
+    const original = base[id] || D.emptyResearch(id);
+    if (overrides[id]) {
+      overrides[id] = D.reconcileResearch(original, overrides[id]);
+      return overrides[id];
+    }
+    return original;
   }
   function dataset() {
     return D.unique([
@@ -182,6 +188,7 @@
         scope = $("scope").value;
       if (
         (scope === "portfolio" && !c) ||
+        (scope === "researchedPortfolio" && (!c || !r.analyzed)) ||
         (scope === "orphan" && c) ||
         (scope === "research" && !r.analyzed)
       )
@@ -194,6 +201,8 @@
       )
         return false;
       if ($("status").value && q.status !== $("status").value) return false;
+      if ($("followup").value && D.followupStatus(r) !== $("followup").value)
+        return false;
       if ($("analysis").value && r.analyzed !== ($("analysis").value === "yes"))
         return false;
       if (
@@ -328,7 +337,7 @@
               : r.groupRelation === "Non"
                 ? "Pas de groupe renseigné"
                 : "Groupe à documenter";
-          return `<tr><td><button class="company-link" data-company="${x.id}">${esc(x.name)}</button>${sub(x.id)}${!c ? badge("Hors portefeuille importé") : c.duplicate ? badge("Doublon Excel", "warning") : ""}</td><td>${esc(c?.direction || D.UNKNOWN)}${sub(c?.segment || "MDM / HDM / SPES non renseigné")}</td><td>${esc(c?.vrc || D.UNKNOWN)}</td><td>${esc(c?.sector || D.UNKNOWN)}</td><td>${esc(c ? money(c.caOrange) : D.UNKNOWN)}${sub("CA de la relation Orange")}</td><td>${r.countries.length ? r.countries.map((p) => `<span class="country-label">${esc(p)}</span>`).join("") : esc(D.UNKNOWN)}${sub(`${r.presenceScope} · ${r.presenceType}`)}${r.uncertainCountries.length ? badge("Mentions incertaines", "warning") : ""}</td><td>${esc(r.sector || D.UNKNOWN)}</td><td>${esc(r.hq || D.UNKNOWN)}${sub(groupInfo)}${r.hq && !D.proof(r, "hq") ? badge("Siège à sourcer", "warning") : ""}</td><td>${esc(revenue(r))}${sub(`${r.revenue.year || "Exercice non renseigné"} · ${r.revenue.scope}`)}${r.revenue.reported && r.revenue.amount === null ? badge("Montant historique", "warning") : ""}</td><td>${badge(r.analyzed ? "Analysé" : "Non analysé", r.analyzed ? "blue" : "neutral")}${sub(r.checkedAt || "Date non renseignée")}${r.reviewed ? sub("Analyse relue") : r.analyzed ? sub("À revalider") : ""}${link(r.sources.presence, "Présence") || (r.legacy?.verification?.source ? link(r.legacy.verification.source, "Source historique") : "")}</td><td>${badge(q.status, q.tone)}${sub(q.reasons[0] || "Critères satisfaits")}</td><td>${op.known ? esc(op.open.join(", ") || "Aucun écart identifié") : "Couverture Orange à renseigner"}${sub(op.known ? "Pistes à valider commercialement" : "Aucune opportunité déduite automatiquement")}</td></tr>`;
+          return `<tr><td><button class="company-link" data-company="${x.id}">${esc(x.name)}</button>${sub(x.id)}${!c ? badge("Hors portefeuille importé") : c.duplicate ? badge("Doublon Excel", "warning") : ""}</td><td>${esc(c?.direction || D.UNKNOWN)}${sub(c?.segment || "MDM / HDM / SPES non renseigné")}</td><td>${esc(c?.vrc || D.UNKNOWN)}</td><td>${esc(c?.sector || D.UNKNOWN)}</td><td>${esc(c ? money(c.caOrange) : D.UNKNOWN)}${sub("CA de la relation Orange")}</td><td>${r.countries.length ? r.countries.map((p) => `<span class="country-label">${esc(p)}</span>`).join("") : esc(D.UNKNOWN)}${sub(`${r.presenceScope} · ${r.presenceType}`)}${r.uncertainCountries.length ? badge("Mentions incertaines", "warning") : ""}</td><td>${esc(r.sector || D.UNKNOWN)}</td><td>${esc(r.hq || D.UNKNOWN)}${sub(groupInfo)}${r.hq && !D.proof(r, "hq") ? badge("Siège à sourcer", "warning") : ""}</td><td>${esc(revenue(r))}${sub(`${r.revenue.year || "Exercice non renseigné"} · ${r.revenue.scope}`)}${r.revenue.reported && r.revenue.amount === null ? badge("Montant historique", "warning") : ""}</td><td>${badge(r.analyzed ? "Analysé" : "Non analysé", r.analyzed ? "blue" : "neutral")}${sub(r.checkedAt || "Date non renseignée")}${sub(D.followupStatus(r))}${r.contributions.length ? badge("Complément utilisateur", "blue") : ""}${r.reviewed ? sub("Analyse relue") : r.analyzed ? sub("À revalider") : ""}${link(r.sources.presence, "Présence") || (r.legacy?.verification?.source ? link(r.legacy.verification.source, "Source historique") : "")}</td><td>${badge(q.status, q.tone)}${sub(q.reasons[0] || "Critères satisfaits")}</td><td>${op.known ? esc(op.open.join(", ") || "Aucun écart identifié") : "Couverture Orange à renseigner"}${sub(op.known ? "Pistes à valider commercialement" : "Aucune opportunité déduite automatiquement")}</td></tr>`;
         })
         .join("") ||
       '<tr><td colspan="12" class="empty">Aucune entreprise ne correspond aux filtres. Réinitialisez-les ou importez le portefeuille.</td></tr>';
@@ -494,6 +503,8 @@
       `SIREN ${id} · ${c ? "Dans le portefeuille importé" : "Hors portefeuille importé"}`;
     $("qualificationDetail").innerHTML =
       `${badge(q.status, q.tone)} ${badge(r.analyzed ? "Analysé" : "Non analysé", "blue")}<ul>${q.reasons.map((s) => `<li>${esc(s)}</li>`).join("") || "<li>Présence documentée, analyse relue et critères satisfaits.</li>"}</ul><p>${esc(op.known ? `Orange accompagne : ${op.covered.join(", ") || "aucun pays renseigné"}. Pays à examiner : ${op.open.join(", ") || "aucun écart identifié"}. Source : ${op.source}` : "Les pays déjà accompagnés par Orange sont inconnus. La présence mondiale seule ne suffit pas à établir un écart de couverture.")}</p>`;
+    $("qualificationDetail").innerHTML +=
+      `<p><strong>Suivi : ${esc(D.followupStatus(r))}</strong><br>${esc(D.missingInfo(r).length ? "Informations à compléter ou préciser : " + D.missingInfo(r).join(" · ") : "Les principaux champs sont renseignés ; cela ne constitue pas une confirmation commerciale.")}</p>`;
     const values = c
       ? [
           ["Direction commerciale", c.direction],
@@ -565,6 +576,12 @@
       groupHQ: r.groupHQ,
       presenceScope: r.presenceScope,
       presenceType: r.presenceType,
+      countryCount: r.countryCount,
+      foreignSites: r.foreignSites,
+      presenceDetails: r.presenceDetails,
+      franceRevenue: r.franceRevenue,
+      worldEmployees: r.worldEmployees,
+      followup: r.followup,
       countries: r.countries.join(" ; "),
       uncertainCountries: r.uncertainCountries.join("\n"),
       revenueAmount: r.revenue.amount ?? "",
@@ -601,6 +618,27 @@
           '<p class="muted">Des incertitudes étaient déjà signalées dans le fichier d’origine.</p>';
     }
     $("formError").hidden = true;
+    $("suppliedDetail").hidden = !r.contributions.length;
+    $("suppliedDetail").innerHTML =
+      r.contributions
+        .map(
+          (entry) =>
+            `<h3>Complément utilisateur · lot ${esc(entry.lot)}, ligne ${esc(entry.line)}</h3><p class="muted">Reçu le ${esc(entry.receivedOn)}. Date de consultation des sources non fournie ; liens cités, sans nouvelle vérification Internet.</p><dl class="raw-data">${Object.entries(
+              entry.originalFields || {},
+            )
+              .filter(([key]) => !["line", "siren"].includes(key))
+              .map(
+                ([key, value]) =>
+                  `<div><dt>${esc({ name: "Entreprise", hq: "Siège de l’entité en France", countries: "Pays / couverture déclarés", sector: "Secteur détaillé", countryCount: "Nombre de pays et périmètre", foreignSites: "Sites / filiales à l’étranger", presenceDetails: "Nature de présence publiée", revenueReported: "CA mondial publié", franceRevenue: "CA France publié", worldEmployees: "Effectifs mondiaux", sourceText: "Sources citées", notes: "Justification" }[key] || key)}</dt><dd>${esc(value)}</dd></div>`,
+              )
+              .join(
+                "",
+              )}</dl><p>${(entry.sourceLinks || []).map((source) => link(source.url, source.label)).join(" · ")}</p>${(entry.cautions || []).length ? `<p class="muted">${entry.cautions.map(esc).join("<br>")}</p>` : ""}`,
+        )
+        .join("") +
+      (r.changes.length
+        ? `<details><summary>Différences conservées avec les informations précédentes</summary><div class="legacy-note">${esc(JSON.stringify(r.changes, null, 2))}</div></details>`
+        : "");
     $("companyDialog").showModal();
   }
   $("tableBody").addEventListener("click", (e) => {
@@ -625,6 +663,12 @@
         "presenceScope",
         "presenceType",
         "notes",
+        "countryCount",
+        "foreignSites",
+        "presenceDetails",
+        "franceRevenue",
+        "worldEmployees",
+        "followup",
       ])
         r[k] = get(k);
       r.hq = D.country(r.hq);
@@ -721,6 +765,7 @@
     "group",
     "gap",
     "countryFilters",
+    "followup",
   ])
     $(id).addEventListener("change", () => {
       page = 1;
@@ -744,6 +789,7 @@
       "group",
       "minRevenue",
       "gap",
+      "followup",
     ])
       $(id).value = "";
     $("scope").value = Object.keys(clients).length ? "portfolio" : "all";
@@ -886,6 +932,15 @@
       "Source CA mondial",
       "Date consultation",
       "Notes",
+      "Recherche - Nombre de pays et périmètre",
+      "Recherche - Sites ou filiales à l’étranger",
+      "Recherche - Précisions présence",
+      "Recherche - CA France publié",
+      "Recherche - Effectifs mondiaux",
+      "Suivi recherches",
+      "Informations manquantes",
+      "Lots utilisateur",
+      "Liens cités dans les lots",
     ];
     const rows = visible.map(({ id, name, c, r, q, op }) => [
       id,
@@ -921,6 +976,18 @@
       r.sources.revenue,
       r.checkedAt,
       r.notes,
+      r.countryCount,
+      r.foreignSites,
+      r.presenceDetails,
+      r.franceRevenue,
+      r.worldEmployees,
+      D.followupStatus(r),
+      D.missingInfo(r).join(" | "),
+      r.contributions.map((e) => e.id).join(" | "),
+      r.contributions
+        .flatMap((e) => e.sourceLinks || [])
+        .map((source) => source.url)
+        .join(" | "),
     ]);
     download(
       "\ufeff" +

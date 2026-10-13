@@ -83,6 +83,14 @@
       groupRelation: "Inconnu",
       presenceScope: "Inconnu",
       presenceType: "Inconnue",
+      countryCount: "",
+      foreignSites: "",
+      presenceDetails: "",
+      franceRevenue: "",
+      worldEmployees: "",
+      followup: "",
+      contributions: [],
+      changes: [],
       countries: [],
       uncertainCountries: [],
       revenue: {
@@ -139,11 +147,186 @@
         ? "Groupe"
         : "Inconnu";
       r.notes = unique([v.justification, e.note]).join("\n");
+      r.countryCount = text(merged.nbPaysImplantation);
+      r.foreignSites = text(merged.nbSitesFilialesEtranger);
+      r.presenceDetails = text(merged.typePresence);
+      r.franceRevenue =
+        merged.caFrance?.montant == null
+          ? ""
+          : `${merged.caFrance.montant}${merged.caFrance.annee ? " — " + merged.caFrance.annee : ""}`;
+      r.worldEmployees =
+        merged.effectifsMondiaux?.nombre == null
+          ? ""
+          : `${merged.effectifsMondiaux.nombre}${merged.effectifsMondiaux.annee ? " — " + merged.effectifsMondiaux.annee : ""}`;
       r.legacy = { verification: v, enriched: e, excluded: r.noSignal };
       // Les preuves historiques ne sont pas affectées arbitrairement à chaque champ.
       result[id] = r;
     }
     return result;
+  }
+  const EXTRA_FIELDS = [
+    "countryCount",
+    "foreignSites",
+    "presenceDetails",
+    "franceRevenue",
+    "worldEmployees",
+    "followup",
+  ];
+  function addContributions(records, supplied) {
+    const result = structuredClone(records);
+    for (const entry of supplied.records || []) {
+      const r = result[entry.siren] || emptyResearch(entry.siren);
+      for (const [field, value] of Object.entries(entry.fields)) {
+        if (field === "countriesText") continue;
+        if (
+          ![
+            ...EXTRA_FIELDS,
+            "name",
+            "sector",
+            "hq",
+            "groupName",
+            "groupHQ",
+            "groupRelation",
+            "presenceScope",
+            "presenceType",
+            "revenue",
+          ].includes(field)
+        )
+          continue;
+        if (
+          JSON.stringify(r[field]) !== JSON.stringify(value) &&
+          r[field] !== "" &&
+          r[field] !== "Inconnu" &&
+          r[field] !== "Inconnue"
+        )
+          r.changes.push({
+            field,
+            previous: r[field],
+            current: value,
+            source: entry.id,
+          });
+        r[field] = structuredClone(value);
+      }
+      const tokens = text(entry.fields.countriesText)
+        .replace(/Autre\s*:/gi, "")
+        .split(/[;,]/)
+        .map(text)
+        .filter(Boolean);
+      const nextCountries = unique(
+        tokens
+          .filter(knownCountry)
+          .map(country)
+          .filter((p) => p !== "France"),
+      );
+      if (
+        JSON.stringify(r.countries) !== JSON.stringify(nextCountries) &&
+        r.countries.length
+      )
+        r.changes.push({
+          field: "countries",
+          previous: r.countries,
+          current: nextCountries,
+          source: entry.id,
+        });
+      r.countries = nextCountries;
+      r.uncertainCountries = unique([
+        ...r.uncertainCountries,
+        ...tokens.filter((p) => !knownCountry(p)),
+      ]);
+      r.contributions.push(structuredClone(entry));
+      r.notes = unique([
+        r.notes,
+        `Lot ${entry.lot}, ligne ${entry.line} : ${entry.notes}`,
+        ...entry.cautions,
+      ]).join("\n");
+      r.analyzed = true;
+      r.reviewed = false;
+      // Les lignes omises d’un lot ne sont jamais assimilées à des recherches négatives.
+      result[entry.siren] = r;
+    }
+    for (const item of supplied.followups || []) {
+      const r = result[item.siren] || emptyResearch(item.siren);
+      r.followup = item.followup;
+      r.notes = unique([r.notes, item.reason]).join("\n");
+      result[item.siren] = r;
+    }
+    return result;
+  }
+  function reconcileResearch(base, saved) {
+    if (!saved) return base;
+    const missing = base.contributions.filter(
+      (e) => !(saved.contributions || []).some((old) => old.id === e.id),
+    );
+    const fillExtras = EXTRA_FIELDS.some(
+      (field) => !saved[field] && base[field],
+    );
+    if (!missing.length && !fillExtras) return saved;
+    const r = structuredClone(saved);
+    r.contributions = [...(r.contributions || []), ...structuredClone(missing)];
+    r.changes = r.changes || [];
+    if (
+      missing.length &&
+      !r.noSignal &&
+      !r.countries.length &&
+      base.countries.length
+    )
+      r.countries = structuredClone(base.countries);
+    if (
+      missing.length &&
+      r.revenue.amount === null &&
+      base.revenue.amount !== null
+    )
+      r.revenue = structuredClone(base.revenue);
+    for (const field of [
+      ...EXTRA_FIELDS,
+      ...(missing.length
+        ? ["name", "sector", "hq", "groupName", "groupHQ"]
+        : []),
+    ]) {
+      if (!r[field] && base[field]) r[field] = base[field];
+      else if (missing.length && base[field] && r[field] !== base[field])
+        r.changes.push({
+          field,
+          previous: base[field],
+          current: r[field],
+          source: "Saisie locale conservée ; nouveau complément disponible",
+        });
+    }
+    r.notes = unique([
+      r.notes,
+      ...missing.map((e) => `Lot ${e.lot}, ligne ${e.line} : ${e.notes}`),
+    ]).join("\n");
+    if (missing.length) r.reviewed = false;
+    return r;
+  }
+  function missingInfo(r) {
+    const missing = [];
+    if (!r.hq) missing.push("Siège de l’entité");
+    if (!r.sector) missing.push("Secteur détaillé");
+    if (!r.countries.length || r.uncertainCountries.length)
+      missing.push("Pays de présence à préciser");
+    if (
+      !r.countryCount ||
+      /non communique|transition|historique/.test(norm(r.countryCount))
+    )
+      missing.push("Nombre de pays");
+    if (
+      !r.foreignSites ||
+      /non communique|non confirme|non isole|aucun.*confirm|exact.*entite/.test(
+        norm(r.foreignSites),
+      )
+    )
+      missing.push("Sites / filiales à l’étranger");
+    if (r.presenceType === "Inconnue") missing.push("Type de présence");
+    if (r.revenue.amount === null) missing.push("CA mondial");
+    if (!r.revenue.year) missing.push("Exercice du CA mondial");
+    return missing;
+  }
+  function followupStatus(r) {
+    return (
+      r.followup ||
+      (missingInfo(r).length ? "À compléter" : "Enrichissement renseigné")
+    );
   }
   const ALIASES = {
     siren: ["SIREN", "ENT. SIREN"],
@@ -493,6 +676,7 @@
       "groupHQ",
       "notes",
       "checkedAt",
+      ...EXTRA_FIELDS,
     ])
       r[k] = text(raw[k]);
     for (const k of ["analyzed", "reviewed", "noSignal"])
@@ -557,6 +741,18 @@
       throw Error("Préciser la source commerciale de la couverture Orange.");
     r.history = Array.isArray(raw.history) ? raw.history : [];
     r.legacy = raw.legacy && typeof raw.legacy === "object" ? raw.legacy : null;
+    for (const key of ["contributions", "changes"])
+      r[key] = Array.isArray(raw[key]) ? raw[key] : [];
+    if (
+      ![
+        "",
+        "À compléter",
+        "À rechercher par l’utilisateur",
+        "À relire",
+        "Enrichissement renseigné",
+      ].includes(r.followup)
+    )
+      throw Error("Suivi de recherche invalide.");
     return r;
   }
   const csvCell = (v) => {
@@ -580,6 +776,10 @@
     zones,
     emptyResearch,
     fromLegacy,
+    addContributions,
+    reconcileResearch,
+    missingInfo,
+    followupStatus,
     uniqueHeaders,
     importSheets,
     qualify,

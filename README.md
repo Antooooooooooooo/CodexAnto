@@ -35,6 +35,12 @@ Les **721 SIREN historiques** sont repris du HTML fourni, avec les deux jeux de 
 
 Les recherches sans correspondance dans le classeur importé restent consultables via les périmètres « Portefeuille + recherches » et « Recherches hors portefeuille ». Les informations commerciales sont affichées comme non renseignées pour ces entreprises.
 
+Les **lots utilisateur 14, 15 et 16** ajoutent **16 compléments** (6, 6 et 4 fiches) à des entreprises déjà présentes. Ils sont conservés séparément dans `data/complements-utilisateur.json`, avec les champs d’origine, les liens cités et le numéro de lot. La date de réception ne remplace pas une date de consultation des sources. Ces contributions ne déclenchent aucune confirmation automatique ; les valeurs antérieures restent dans l’archive et les différences sont consultables dans la fiche. Les saisies locales existantes sont conservées lors de l’arrivée d’un nouveau lot.
+
+Les fiches affichent désormais le nombre de pays et son périmètre, les sites / filiales à l’étranger, les précisions sur la présence, les effectifs mondiaux et le CA France publié. Les réseaux de partenaires, les pays commerciaux, les consortiums et les implantations propres restent distincts. Le CA France de Micromania et le volume d’affaires Bechtle France ne sont pas traités comme des CA mondiaux consolidés.
+
+Le périmètre **« Portefeuille déjà analysé »** limite la vue aux entreprises analysées et présentes dans l’Excel importé. Le filtre **« Suivi des recherches »** permet de consulter les fiches à compléter ou mises de côté pour une recherche par l’utilisateur. Un refus d’accès connu au site Tiflex est enregistré dans cette dernière file ; les autres fiches incomplètes ne sont pas déclarées inaccessibles sans contrôle. Les lignes omises des lots ne sont pas assimilées à des entreprises sans présence internationale.
+
 Les doublons SIREN sont signalés et la première ligne est conservée, sans addition automatique de CA. Les zéros initiaux des SIREN sont préservés. L’onglet facultatif **Détail Clients** complète les informations de groupe ; leur onglet, ligne et colonnes d’origine restent consultables. Les formules Excel ne sont pas recalculées par le navigateur : leurs résultats doivent avoir été enregistrés dans le classeur.
 
 Les en-têtes répétés (par exemple CUID, CUID Cible ou RDV BM.) ne bloquent pas l’import. Chaque occurrence conserve ses valeurs dans une colonne distincte, identifiée par son numéro, et le diagnostic les signale. Pour les informations reconnues automatiquement, la première occurrence est utilisée par défaut ; la direction et la catégorie commerciales peuvent être choisies explicitement dans les correspondances de colonnes.
@@ -60,4 +66,4 @@ Le lecteur ExcelJS **4.4.0** est distribué localement sous licence MIT (`vendor
 XctvKaEMaj1Ii9oDOqbW/6e1gXknSY4g/aLCDicOXqBE4M0nRWkUu0PTp++UPNzoFY12BNHMfs/VadKIS6llvg==
 ```
 
-Les champs importés sont échappés pour leur affichage HTML. Les liens n’acceptent que HTTP/HTTPS sans identifiants intégrés ; les champs exportés en CSV neutralisent les préfixes de formule. La validation de l’interface a été effectuée sur un **classeur synthétique**, le classeur clients réel n’ayant pas été fourni.
+Les champs importés sont échappés pour leur affichage HTML. Les liens n’acceptent que HTTP/HTTPS sans identifiants intégrés ; les champs exportés en CSV neutralisent les préfixes de formule. La validation de l’interface utilise un **classeur synthétique** dans la suite reproductible. L’import a également été vérifié avec le classeur client réel fourni dans la conversation : les entreprises déjà analysées et les 16 compléments sont retrouvés. Ce classeur réel n’est pas inclus dans le dépôt.

@@ -1,0 +1,937 @@
+{
+  "schemaVersion": 1,
+  "description": "Compléments fournis par l’utilisateur ; sources citées conservées, consultation indépendante non effectuée. Les numéros de lignes sont ceux des lots, pas ceux du classeur.",
+  "records": [
+    {
+      "id": "lot-14-402",
+      "siren": "390609253",
+      "lot": 14,
+      "line": 402,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Ashland Specialties France",
+        "sector": "Chimie de spécialités : ingrédients pharmaceutiques, soins personnels, additifs et matériaux fonctionnels",
+        "countryCount": ">10",
+        "foreignSites": "Nombre exact non communiqué ; sites et entités internationales du groupe Ashland",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "≈2 900 — 2025",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Groupe",
+        "countriesText": "Allemagne ; Autre : États-Unis, Brésil, Chine, Inde, Pays-Bas, Singapour, Royaume-Uni",
+        "groupName": "Ashland",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": 1866000000,
+          "currency": "USD",
+          "year": "2025",
+          "scope": "Groupe",
+          "reported": "1,866 Md$ — exercice 2025, groupe Ashland"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "gb.lei.report",
+          "url": "https://gb.lei.report/LEI/549300DFT3CC7TD5P306?utm_source=openai"
+        }
+      ],
+      "notes": "Le SIREN correspond à Ashland Specialties France, basée à Biot. Ashland sert plus de 100 pays et réalise 73 % de ses ventes hors Amérique du Nord. ([gb.lei.report](https://gb.lei.report/LEI/549300DFT3CC7TD5P306?utm_source=openai))",
+      "cautions": [],
+      "originalFields": {
+        "line": "402",
+        "name": "Ashland Specialties France",
+        "siren": "390 609 253",
+        "hq": "Oui",
+        "countries": "Allemagne ; Autre : États-Unis, Brésil, Chine, Inde, Pays-Bas, Singapour, Royaume-Uni",
+        "sector": "Chimie de spécialités : ingrédients pharmaceutiques, soins personnels, additifs et matériaux fonctionnels",
+        "countryCount": ">10",
+        "foreignSites": "Nombre exact non communiqué ; sites et entités internationales du groupe Ashland",
+        "presenceDetails": "Mixte",
+        "revenueReported": "1,866 Md$ — exercice 2025, groupe Ashland",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "≈2 900 — 2025",
+        "sourceText": "Rapport annuel Ashland ; registre LEI",
+        "notes": "Le SIREN correspond à Ashland Specialties France, basée à Biot. Ashland sert plus de 100 pays et réalise 73 % de ses ventes hors Amérique du Nord. ([gb.lei.report](https://gb.lei.report/LEI/549300DFT3CC7TD5P306?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-14-404",
+      "siren": "955803929",
+      "lot": 14,
+      "line": 404,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Mathez Transports Internationaux / Mathez Freight",
+        "sector": "Transport international, freight forwarding, douane, logistique événementielle et art logistics",
+        "countryCount": "191–197 pays couverts par partenaires",
+        "foreignSites": "17 agences en France et Monaco ; filiales propres étrangères non confirmées",
+        "presenceDetails": "Mixte, principalement commerciale et opérationnelle en France/Monaco",
+        "franceRevenue": "Non communiqué séparément",
+        "worldEmployees": "226 — 2025, groupe",
+        "hq": "France",
+        "presenceType": "Distribution",
+        "presenceScope": "Inconnu",
+        "countriesText": "Monaco ; Autre : réseau de partenaires dans 191 à 197 pays",
+        "groupName": "Mathez",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": 59200000,
+          "currency": "EUR",
+          "year": "2025",
+          "scope": "Groupe",
+          "reported": "≈59,2 M€ — 2025, groupe Mathez"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "mathez-onsite-logistics.com",
+          "url": "https://www.mathez-onsite-logistics.com/en/legal/?utm_source=openai"
+        }
+      ],
+      "notes": "Le siège est à l’aéroport de Nice. L’international repose surtout sur un réseau de partenaires et d’agents, non sur des filiales propres dans chaque pays. ([mathez-onsite-logistics.com](https://www.mathez-onsite-logistics.com/en/legal/?utm_source=openai))",
+      "cautions": [
+        "191–197 pays couverts par partenaires ne signifient pas autant d’implantations propres ; 17 agences incluent la France."
+      ],
+      "originalFields": {
+        "line": "404",
+        "name": "Mathez Transports Internationaux / Mathez Freight",
+        "siren": "955 803 929",
+        "hq": "Oui",
+        "countries": "Monaco ; Autre : réseau de partenaires dans 191 à 197 pays",
+        "sector": "Transport international, freight forwarding, douane, logistique événementielle et art logistics",
+        "countryCount": "191–197 pays couverts par partenaires",
+        "foreignSites": "17 agences en France et Monaco ; filiales propres étrangères non confirmées",
+        "presenceDetails": "Mixte, principalement commerciale et opérationnelle en France/Monaco",
+        "revenueReported": "≈59,2 M€ — 2025, groupe Mathez",
+        "franceRevenue": "Non communiqué séparément",
+        "worldEmployees": "226 — 2025, groupe",
+        "sourceText": "Site officiel Mathez Freight ; mentions légales",
+        "notes": "Le siège est à l’aéroport de Nice. L’international repose surtout sur un réseau de partenaires et d’agents, non sur des filiales propres dans chaque pays. ([mathez-onsite-logistics.com](https://www.mathez-onsite-logistics.com/en/legal/?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-14-410",
+      "siren": "331211466",
+      "lot": 14,
+      "line": 410,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Transvalor",
+        "sector": "Logiciels de simulation numérique pour procédés industriels : forge, fonderie, plasturgie et métallurgie",
+        "countryCount": "Au moins 5 pays avec bureaux/filiales",
+        "foreignSites": "4 implantations étrangères identifiées : États-Unis, Italie, Inde, Chine",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "Non communiqué publiquement",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Entreprise",
+        "countriesText": "Italie ; États-Unis ; Chine ; Inde ; autres marchés via distributeurs",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "Non communiqué publiquement"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "transvalor.com",
+          "url": "https://www.transvalor.com/en/company?utm_source=openai"
+        }
+      ],
+      "notes": "Transvalor possède une filiale américaine et des bureaux/structures en Italie, Inde et Chine ; ses distributeurs couvrent également l’Europe, l’Asie et d’autres régions. ([transvalor.com](https://www.transvalor.com/en/company?utm_source=openai))",
+      "cautions": [],
+      "originalFields": {
+        "line": "410",
+        "name": "Transvalor",
+        "siren": "331 211 466",
+        "hq": "Oui",
+        "countries": "Italie ; Autre : États-Unis, Chine, Inde et nombreux marchés via distributeurs",
+        "sector": "Logiciels de simulation numérique pour procédés industriels : forge, fonderie, plasturgie et métallurgie",
+        "countryCount": "Au moins 5 pays avec bureaux/filiales",
+        "foreignSites": "4 implantations étrangères identifiées : États-Unis, Italie, Inde, Chine",
+        "presenceDetails": "Mixte",
+        "revenueReported": "Non communiqué publiquement",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "Non communiqué publiquement",
+        "sourceText": "Site officiel Transvalor",
+        "notes": "Transvalor possède une filiale américaine et des bureaux/structures en Italie, Inde et Chine ; ses distributeurs couvrent également l’Europe, l’Asie et d’autres régions. ([transvalor.com](https://www.transvalor.com/en/company?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-14-416",
+      "siren": "542015516",
+      "lot": 14,
+      "line": 416,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Dufry France / Avolta France",
+        "sector": "Travel retail : boutiques duty-free, commerces en aéroports, ports, gares et sites touristiques",
+        "countryCount": "34 pays pour la région EMEA ; groupe mondial présent sur plusieurs régions",
+        "foreignSites": "Nombre exact pour l’entité française non communiqué ; réseau mondial de 2 370 points de vente",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "69 278 — 2025, groupe Avolta",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Groupe",
+        "countriesText": "Suisse ; Autre : États-Unis, Royaume-Uni, Italie, Espagne, Chine, Australie, Afrique et Amérique latine",
+        "groupName": "Avolta",
+        "groupRelation": "Oui",
+        "groupHQ": "Suisse",
+        "revenue": {
+          "amount": 13760000000,
+          "currency": "CHF",
+          "year": "2025",
+          "scope": "Groupe",
+          "reported": "13,760 Md CHF — 2025, groupe Avolta"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "avoltaworld.com",
+          "url": "https://www.avoltaworld.com/fr/note-legale?utm_source=openai"
+        }
+      ],
+      "notes": "Dufry est devenu Avolta. Le siège du groupe est à Bâle, en Suisse ; Dufry France est une entité française du périmètre international. ([avoltaworld.com](https://www.avoltaworld.com/fr/note-legale?utm_source=openai))",
+      "cautions": [],
+      "originalFields": {
+        "line": "416",
+        "name": "Dufry France / Avolta France",
+        "siren": "542 015 516",
+        "hq": "Oui",
+        "countries": "Suisse ; Autre : États-Unis, Royaume-Uni, Italie, Espagne, Chine, Australie, Afrique et Amérique latine",
+        "sector": "Travel retail : boutiques duty-free, commerces en aéroports, ports, gares et sites touristiques",
+        "countryCount": "34 pays pour la région EMEA ; groupe mondial présent sur plusieurs régions",
+        "foreignSites": "Nombre exact pour l’entité française non communiqué ; réseau mondial de 2 370 points de vente",
+        "presenceDetails": "Mixte",
+        "revenueReported": "13,760 Md CHF — 2025, groupe Avolta",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "69 278 — 2025, groupe Avolta",
+        "sourceText": "Rapport annuel Avolta 2025 ; note légale Avolta",
+        "notes": "Dufry est devenu Avolta. Le siège du groupe est à Bâle, en Suisse ; Dufry France est une entité française du périmètre international. ([avoltaworld.com](https://www.avoltaworld.com/fr/note-legale?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-14-417",
+      "siren": "418096392",
+      "lot": 14,
+      "line": 417,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Micromania",
+        "sector": "Distribution spécialisée de jeux vidéo, consoles, accessoires et produits dérivés",
+        "countryCount": "Périmètre international du groupe en transition",
+        "foreignSites": "Aucun site étranger propre identifié pour Micromania ; réseau français d’environ 300 magasins",
+        "presenceDetails": "Commerciale, via maison mère étrangère",
+        "franceRevenue": "449,4 M€ — 2025, entité française",
+        "worldEmployees": "1 000–1 999 salariés — donnée 2023",
+        "hq": "France",
+        "presenceType": "Distribution",
+        "presenceScope": "Inconnu",
+        "countriesText": "États-Unis ; Canada ; ancien périmètre européen de GameStop à actualiser",
+        "groupName": "GameStop (lien historique à actualiser)",
+        "groupRelation": "Inconnu",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Groupe",
+          "reported": "CA mondial GameStop non retenu dans le lot ; CA Micromania France conservé séparément."
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "pappers.fr",
+          "url": "https://www.pappers.fr/entreprise/micromania-418096392?utm_source=openai"
+        }
+      ],
+      "notes": "Le SIREN correspond à Micromania SAS, siège à Valbonne. L’entreprise appartenait à GameStop, mais sa cession annoncée en 2025 rend le périmètre capitalistique actuel incertain. ([pappers.fr](https://www.pappers.fr/entreprise/micromania-418096392?utm_source=openai))",
+      "cautions": [
+        "Lien actuel avec GameStop et pays de présence à actualiser après la cession annoncée. Le CA de 449,4 M€ concerne Micromania en France, pas le CA mondial GameStop."
+      ],
+      "originalFields": {
+        "line": "417",
+        "name": "Micromania",
+        "siren": "418 096 392",
+        "hq": "Oui",
+        "countries": "États-Unis ; Autre : Canada et ancien périmètre européen de GameStop",
+        "sector": "Distribution spécialisée de jeux vidéo, consoles, accessoires et produits dérivés",
+        "countryCount": "Périmètre international du groupe en transition",
+        "foreignSites": "Aucun site étranger propre identifié pour Micromania ; réseau français d’environ 300 magasins",
+        "presenceDetails": "Commerciale, via maison mère étrangère",
+        "revenueReported": "CA Micromania : 449,4 M€ — exercice 2025 ; CA mondial GameStop non retenu ici",
+        "franceRevenue": "449,4 M€ — 2025, entité française",
+        "worldEmployees": "1 000–1 999 salariés — donnée 2023",
+        "sourceText": "Pappers ; comptes Micromania ; GameStop/AFP",
+        "notes": "Le SIREN correspond à Micromania SAS, siège à Valbonne. L’entreprise appartenait à GameStop, mais sa cession annoncée en 2025 rend le périmètre capitalistique actuel incertain. ([pappers.fr](https://www.pappers.fr/entreprise/micromania-418096392?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-14-420",
+      "siren": "333974657",
+      "lot": 14,
+      "line": 420,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Parfex",
+        "sector": "Parfumerie et arômes : compositions parfumées pour cosmétique, détergence et produits de consommation",
+        "countryCount": "Non communiqué publiquement ; export dans plusieurs dizaines de pays",
+        "foreignSites": "Aucun site étranger propre confirmé ; nouveau site industriel en France",
+        "presenceDetails": "Commerciale, principalement export",
+        "franceRevenue": "40,7 M€ — 2024",
+        "worldEmployees": "112 — 2024",
+        "hq": "France",
+        "presenceType": "Export",
+        "presenceScope": "Entreprise",
+        "countriesText": "Royaume-Uni ; Autre : pays export non détaillés",
+        "groupName": "Croda",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": 40700000,
+          "currency": "EUR",
+          "year": "2024",
+          "scope": "Entreprise",
+          "reported": "CA mondial/entité : 40,7 M€ — 2024"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "pappers.fr",
+          "url": "https://www.pappers.fr/entreprise/parfex-333974657?utm_source=openai"
+        }
+      ],
+      "notes": "Parfex est basée à Grasse et réalise environ 35 M€ de chiffre d’affaires à l’export en 2024. La marque fait désormais partie du portefeuille Croda, groupe britannique. ([pappers.fr](https://www.pappers.fr/entreprise/parfex-333974657?utm_source=openai))",
+      "cautions": [],
+      "originalFields": {
+        "line": "420",
+        "name": "Parfex",
+        "siren": "333 974 657",
+        "hq": "Oui",
+        "countries": "Royaume-Uni ; Autre : pays export non détaillés",
+        "sector": "Parfumerie et arômes : compositions parfumées pour cosmétique, détergence et produits de consommation",
+        "countryCount": "Non communiqué publiquement ; export dans plusieurs dizaines de pays",
+        "foreignSites": "Aucun site étranger propre confirmé ; nouveau site industriel en France",
+        "presenceDetails": "Commerciale, principalement export",
+        "revenueReported": "CA mondial/entité : 40,7 M€ — 2024",
+        "franceRevenue": "40,7 M€ — 2024",
+        "worldEmployees": "112 — 2024",
+        "sourceText": "Pappers ; site Parfex",
+        "notes": "Parfex est basée à Grasse et réalise environ 35 M€ de chiffre d’affaires à l’export en 2024. La marque fait désormais partie du portefeuille Croda, groupe britannique. ([pappers.fr](https://www.pappers.fr/entreprise/parfex-333974657?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-15-426",
+      "siren": "930347521",
+      "lot": 15,
+      "line": 426,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "nLighten France Holding",
+        "sector": "Holding et infrastructure numérique : data centers Edge, colocation et hébergement sécurisé",
+        "countryCount": "7 pays européens documentés au niveau nLighten",
+        "foreignSites": "nLighten France Holding détient/contrôle des activités françaises ; réseau européen de data centers, nombre total non communiqué",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "1,89 M€ — 2024, entité française",
+        "worldEmployees": "Non communiqué publiquement",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Groupe",
+        "countriesText": "Allemagne, Belgique, Espagne, Pays-Bas, Royaume-Uni, Suisse",
+        "groupName": "nLighten HQ BV",
+        "groupRelation": "Oui",
+        "groupHQ": "Pays-Bas",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "Non communiqué publiquement au niveau groupe"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "Registre légal",
+          "url": "https://www.lefigaro.fr/entreprises/nlighten-france-sas-06/entreprise-930347521"
+        },
+        {
+          "label": "nLighten Europe",
+          "url": "https://www.nlighten.com/fr/sites-pages-details/toutes-les-succursales-edge/"
+        },
+        {
+          "label": "pagesjaunes.fr",
+          "url": "https://www.pagesjaunes.fr/siret/93034752100013?utm_source=openai"
+        }
+      ],
+      "notes": "Le SIREN correspond bien à nLighten France Holding, siège à Antibes. La société est contrôlée par nLighten HQ BV aux Pays-Bas ; le réseau nLighten couvre plusieurs pays européens. ([pagesjaunes.fr](https://www.pagesjaunes.fr/siret/93034752100013?utm_source=openai))",
+      "cautions": [],
+      "originalFields": {
+        "line": "426",
+        "name": "nLighten France Holding",
+        "siren": "930 347 521",
+        "hq": "Oui",
+        "countries": "Allemagne, Belgique, Espagne, Pays-Bas, Royaume-Uni, Suisse",
+        "sector": "Holding et infrastructure numérique : data centers Edge, colocation et hébergement sécurisé",
+        "countryCount": "7 pays européens documentés au niveau nLighten",
+        "foreignSites": "nLighten France Holding détient/contrôle des activités françaises ; réseau européen de data centers, nombre total non communiqué",
+        "presenceDetails": "Mixte",
+        "revenueReported": "Non communiqué publiquement au niveau groupe",
+        "franceRevenue": "1,89 M€ — 2024, entité française",
+        "worldEmployees": "Non communiqué publiquement",
+        "sourceText": "[Registre légal](https://www.lefigaro.fr/entreprises/nlighten-france-sas-06/entreprise-930347521) ; [nLighten Europe](https://www.nlighten.com/fr/sites-pages-details/toutes-les-succursales-edge/)",
+        "notes": "Le SIREN correspond bien à nLighten France Holding, siège à Antibes. La société est contrôlée par nLighten HQ BV aux Pays-Bas ; le réseau nLighten couvre plusieurs pays européens. ([pagesjaunes.fr](https://www.pagesjaunes.fr/siret/93034752100013?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-15-427",
+      "siren": "349423301",
+      "lot": 15,
+      "line": 427,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Iris Pharma",
+        "sector": "CRO spécialisée en recherche préclinique et clinique ophtalmologique",
+        "countryCount": "36 pays couverts par les essais cliniques",
+        "foreignSites": "Principal site propre à La Gaude ; partenaires et sites cliniques internationaux",
+        "presenceDetails": "Commerciale / opérationnelle via réseau de partenaires",
+        "franceRevenue": "7,8 M€ — 2020, donnée ancienne",
+        "worldEmployees": "60+ — 2020, donnée ancienne",
+        "hq": "France",
+        "presenceType": "Distribution",
+        "presenceScope": "Inconnu",
+        "countriesText": "Allemagne, Belgique, Espagne, Italie, Suisse ; Autre : États-Unis, Maroc, Tunisie, Royaume-Uni, etc.",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "Non communiqué publiquement"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "Iris Pharma – pays couverts",
+          "url": "https://www.iris-pharma.com/c/clinical-trials/countries"
+        },
+        {
+          "label": "mentions légales",
+          "url": "https://www.iris-pharma.com/legal-notice"
+        },
+        {
+          "label": "iris-pharma.com",
+          "url": "https://www.iris-pharma.com/legal-notice?utm_source=openai"
+        }
+      ],
+      "notes": "Siège confirmé à La Gaude. Iris Pharma réalise des études dans 36 pays et s’appuie sur des partenaires internationaux, notamment aux États-Unis. ([iris-pharma.com](https://www.iris-pharma.com/legal-notice?utm_source=openai))",
+      "cautions": [
+        "36 pays d’essais cliniques désignent une couverture par partenaires, pas 36 implantations propres."
+      ],
+      "originalFields": {
+        "line": "427",
+        "name": "Iris Pharma",
+        "siren": "349 423 301",
+        "hq": "Oui",
+        "countries": "Allemagne, Belgique, Espagne, Italie, Suisse ; Autre : États-Unis, Maroc, Tunisie, Royaume-Uni, etc.",
+        "sector": "CRO spécialisée en recherche préclinique et clinique ophtalmologique",
+        "countryCount": "36 pays couverts par les essais cliniques",
+        "foreignSites": "Principal site propre à La Gaude ; partenaires et sites cliniques internationaux",
+        "presenceDetails": "Commerciale / opérationnelle via réseau de partenaires",
+        "revenueReported": "Non communiqué publiquement",
+        "franceRevenue": "7,8 M€ — 2020, donnée ancienne",
+        "worldEmployees": "60+ — 2020, donnée ancienne",
+        "sourceText": "[Iris Pharma – pays couverts](https://www.iris-pharma.com/c/clinical-trials/countries) ; [mentions légales](https://www.iris-pharma.com/legal-notice)",
+        "notes": "Siège confirmé à La Gaude. Iris Pharma réalise des études dans 36 pays et s’appuie sur des partenaires internationaux, notamment aux États-Unis. ([iris-pharma.com](https://www.iris-pharma.com/legal-notice?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-15-432",
+      "siren": "392002218",
+      "lot": 15,
+      "line": 432,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "CooperVision France",
+        "sector": "Dispositifs médicaux ophtalmiques : lentilles de contact et solutions de correction visuelle",
+        "countryCount": "100+ pays commerciaux",
+        "foreignSites": "Réseau mondial du groupe CooperVision ; nombre précis de filiales non communiqué ici",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": ">11 000 — groupe CooperVision, donnée publiée par la filiale française",
+        "hq": "France",
+        "presenceType": "Distribution",
+        "presenceScope": "Groupe",
+        "countriesText": "Allemagne, Belgique, Espagne, Italie, Suisse ; Autre : États-Unis, Royaume-Uni, Chine, Japon, Australie, etc.",
+        "groupName": "CooperVision",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "Non communiqué publiquement pour CooperVision seul"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "CooperVision France",
+          "url": "https://coopervision.fr/notre-entreprise/qui-sommes-nous/notre-histoire"
+        },
+        {
+          "label": "fiche SIREN",
+          "url": "https://acryos.fr/entreprise/cooper-vision-392002218"
+        },
+        {
+          "label": "coopervision.fr",
+          "url": "https://coopervision.fr/notre-entreprise/qui-sommes-nous/notre-histoire?utm_source=openai"
+        }
+      ],
+      "notes": "Le SIREN correspond à CooperVision SAS, siège à Sophia Antipolis. Les produits sont commercialisés dans plus de 100 pays ; le CA mondial n’est pas isolé publiquement pour CooperVision seul. ([coopervision.fr](https://coopervision.fr/notre-entreprise/qui-sommes-nous/notre-histoire?utm_source=openai))",
+      "cautions": [
+        "100+ pays commerciaux ne signifient pas 100+ implantations propres."
+      ],
+      "originalFields": {
+        "line": "432",
+        "name": "CooperVision France",
+        "siren": "392 002 218",
+        "hq": "Oui",
+        "countries": "Allemagne, Belgique, Espagne, Italie, Suisse ; Autre : États-Unis, Royaume-Uni, Chine, Japon, Australie, etc.",
+        "sector": "Dispositifs médicaux ophtalmiques : lentilles de contact et solutions de correction visuelle",
+        "countryCount": "100+ pays commerciaux",
+        "foreignSites": "Réseau mondial du groupe CooperVision ; nombre précis de filiales non communiqué ici",
+        "presenceDetails": "Mixte",
+        "revenueReported": "Non communiqué publiquement pour CooperVision seul",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": ">11 000 — groupe CooperVision, donnée publiée par la filiale française",
+        "sourceText": "[CooperVision France](https://coopervision.fr/notre-entreprise/qui-sommes-nous/notre-histoire) ; [fiche SIREN](https://acryos.fr/entreprise/cooper-vision-392002218)",
+        "notes": "Le SIREN correspond à CooperVision SAS, siège à Sophia Antipolis. Les produits sont commercialisés dans plus de 100 pays ; le CA mondial n’est pas isolé publiquement pour CooperVision seul. ([coopervision.fr](https://coopervision.fr/notre-entreprise/qui-sommes-nous/notre-histoire?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-15-439",
+      "siren": "395154081",
+      "lot": 15,
+      "line": 439,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Groupe SIFAM",
+        "sector": "Distribution B2B de pièces, accessoires et équipements pour motos, scooters et quads",
+        "countryCount": "4 pays d’implantation documentés",
+        "foreignSites": "Au moins 3 filiales étrangères : SIFAM Italia, SIFAM Iberia et Motos SIFAM Suisse",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "≈63 — groupe, donnée LinkedIn récente",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Groupe",
+        "countriesText": "Suisse, Italie, Espagne, Portugal",
+        "groupName": "SIFAM",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "Non communiqué publiquement"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "SIFAM Group",
+          "url": "https://www.sifam.fr/links"
+        },
+        {
+          "label": "vérification SIREN",
+          "url": "https://www.societe.com/societe/societe-industrielle-de-fabrication-d-articles-pour-motos-sifam-395154081.html"
+        },
+        {
+          "label": "societe.com",
+          "url": "https://www.societe.com/societe/societe-industrielle-de-fabrication-d-articles-pour-motos-sifam-395154081.html?utm_source=openai"
+        }
+      ],
+      "notes": "Le SIREN correspond à SIFAM France, siège à Saint-Laurent-du-Var. Le groupe dispose de sites commerciaux en Italie, Suisse, Espagne et Portugal. ([societe.com](https://www.societe.com/societe/societe-industrielle-de-fabrication-d-articles-pour-motos-sifam-395154081.html?utm_source=openai))",
+      "cautions": [],
+      "originalFields": {
+        "line": "439",
+        "name": "Groupe SIFAM",
+        "siren": "395 154 081",
+        "hq": "Oui",
+        "countries": "Suisse, Italie, Espagne, Portugal",
+        "sector": "Distribution B2B de pièces, accessoires et équipements pour motos, scooters et quads",
+        "countryCount": "4 pays d’implantation documentés",
+        "foreignSites": "Au moins 3 filiales étrangères : SIFAM Italia, SIFAM Iberia et Motos SIFAM Suisse",
+        "presenceDetails": "Mixte",
+        "revenueReported": "Non communiqué publiquement",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "≈63 — groupe, donnée LinkedIn récente",
+        "sourceText": "[SIFAM Group](https://www.sifam.fr/links) ; [vérification SIREN](https://www.societe.com/societe/societe-industrielle-de-fabrication-d-articles-pour-motos-sifam-395154081.html)",
+        "notes": "Le SIREN correspond à SIFAM France, siège à Saint-Laurent-du-Var. Le groupe dispose de sites commerciaux en Italie, Suisse, Espagne et Portugal. ([societe.com](https://www.societe.com/societe/societe-industrielle-de-fabrication-d-articles-pour-motos-sifam-395154081.html?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-15-445",
+      "siren": "333372522",
+      "lot": 15,
+      "line": 445,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Groupe Studiel",
+        "sector": "Ingénierie industrielle : électronique, systèmes embarqués, mécanique, IT et essais",
+        "countryCount": "Non communiqué publiquement ; présence internationale historique",
+        "foreignSites": "Aucune filiale étrangère actuelle confirmée ; agences principalement en France",
+        "presenceDetails": "Commerciale historique / actuelle incertaine",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "≈129 — site corporate actuel",
+        "hq": "France",
+        "presenceType": "Inconnue",
+        "presenceScope": "Inconnu",
+        "countriesText": "Autre : pays européens non détaillés",
+        "groupName": "Studiel",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "Non communiqué publiquement"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "Studiel Group",
+          "url": "https://studielgroup.com/"
+        },
+        {
+          "label": "source historique",
+          "url": "https://www.lejournaldesentreprises.com/article/studiel-le-groupe-renforce-son-pole-informatique-6365"
+        },
+        {
+          "label": "studielgroup.com",
+          "url": "https://studielgroup.com/?utm_source=openai"
+        }
+      ],
+      "notes": "Le groupe est aujourd’hui principalement implanté en France. Une activité internationale représentant historiquement 10 % du CA a été documentée, mais son maintien actuel n’est pas confirmé. ([studielgroup.com](https://studielgroup.com/?utm_source=openai))",
+      "cautions": [
+        "La présence internationale est historique ; son maintien actuel est incertain."
+      ],
+      "originalFields": {
+        "line": "445",
+        "name": "Groupe Studiel",
+        "siren": "333 372 522",
+        "hq": "Oui",
+        "countries": "Autre : pays européens non détaillés",
+        "sector": "Ingénierie industrielle : électronique, systèmes embarqués, mécanique, IT et essais",
+        "countryCount": "Non communiqué publiquement ; présence internationale historique",
+        "foreignSites": "Aucune filiale étrangère actuelle confirmée ; agences principalement en France",
+        "presenceDetails": "Commerciale historique / actuelle incertaine",
+        "revenueReported": "Non communiqué publiquement",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "≈129 — site corporate actuel",
+        "sourceText": "[Studiel Group](https://studielgroup.com/) ; [source historique](https://www.lejournaldesentreprises.com/article/studiel-le-groupe-renforce-son-pole-informatique-6365)",
+        "notes": "Le groupe est aujourd’hui principalement implanté en France. Une activité internationale représentant historiquement 10 % du CA a été documentée, mais son maintien actuel n’est pas confirmé. ([studielgroup.com](https://studielgroup.com/?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-15-450",
+      "siren": "415157130",
+      "lot": 15,
+      "line": 450,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Johnson Outdoors France",
+        "sector": "Équipements de loisirs outdoor : nautisme, pêche, plongée, camping et watercraft",
+        "countryCount": "12 pays étrangers identifiés dans les filiales du groupe",
+        "foreignSites": "Au moins 18 filiales étrangères listées par Johnson Outdoors Inc.",
+        "presenceDetails": "Mixte, via maison mère américaine",
+        "franceRevenue": "≈1,2 M€ — 2023, entité française",
+        "worldEmployees": "Non communiqué publiquement dans la source consultée",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Groupe",
+        "countriesText": "Allemagne, Belgique, Italie, Espagne, Suisse ; Autre : États-Unis, Canada, Pays-Bas, Hong Kong, Indonésie, Australie, Afrique du Sud",
+        "groupName": "Johnson Outdoors Inc.",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": 592400000,
+          "currency": "USD",
+          "year": "2025",
+          "scope": "Groupe",
+          "reported": "592,4 M$ — exercice 2025, groupe Johnson Outdoors"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "Rapport annuel Johnson Outdoors 2025",
+          "url": "https://www.johnsonoutdoors.com/sites/default/files/2026-01/JO%202025%20Annual%20Report_010926.pdf"
+        },
+        {
+          "label": "filiales",
+          "url": "https://www.sec.gov/Archives/edgar/data/788329/000114036125045348/ef20060908_ex21.htm"
+        },
+        {
+          "label": "pappers.fr",
+          "url": "https://www.pappers.fr/entreprise/johnson-outdoors-france-415157130?utm_source=openai"
+        }
+      ],
+      "notes": "Le SIREN correspond à Johnson Outdoors France, siège à Antibes. La filiale appartient au groupe américain Johnson Outdoors, qui possède des entités en Europe, Asie, Amérique du Nord, Australie et Afrique du Sud. ([pappers.fr](https://www.pappers.fr/entreprise/johnson-outdoors-france-415157130?utm_source=openai))",
+      "cautions": [],
+      "originalFields": {
+        "line": "450",
+        "name": "Johnson Outdoors France",
+        "siren": "415 157 130",
+        "hq": "Oui",
+        "countries": "Allemagne, Belgique, Italie, Espagne, Suisse ; Autre : États-Unis, Canada, Pays-Bas, Hong Kong, Indonésie, Australie, Afrique du Sud",
+        "sector": "Équipements de loisirs outdoor : nautisme, pêche, plongée, camping et watercraft",
+        "countryCount": "12 pays étrangers identifiés dans les filiales du groupe",
+        "foreignSites": "Au moins 18 filiales étrangères listées par Johnson Outdoors Inc.",
+        "presenceDetails": "Mixte, via maison mère américaine",
+        "revenueReported": "592,4 M$ — exercice 2025, groupe Johnson Outdoors",
+        "franceRevenue": "≈1,2 M€ — 2023, entité française",
+        "worldEmployees": "Non communiqué publiquement dans la source consultée",
+        "sourceText": "[Rapport annuel Johnson Outdoors 2025](https://www.johnsonoutdoors.com/sites/default/files/2026-01/JO%202025%20Annual%20Report_010926.pdf) ; [filiales](https://www.sec.gov/Archives/edgar/data/788329/000114036125045348/ef20060908_ex21.htm)",
+        "notes": "Le SIREN correspond à Johnson Outdoors France, siège à Antibes. La filiale appartient au groupe américain Johnson Outdoors, qui possède des entités en Europe, Asie, Amérique du Nord, Australie et Afrique du Sud. ([pappers.fr](https://www.pappers.fr/entreprise/johnson-outdoors-france-415157130?utm_source=openai))"
+      }
+    },
+    {
+      "id": "lot-16-452",
+      "siren": "399918531",
+      "lot": 16,
+      "line": 452,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Rana France",
+        "sector": "Agroalimentaire : pâtes fraîches, produits garnis et plats préparés",
+        "countryCount": "9 pays au niveau groupe",
+        "foreignSites": "Au moins 8 filiales étrangères documentées, en plus de Rana France",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "117,2 M€ — 2024, entité française",
+        "worldEmployees": "Non communiqué publiquement",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Groupe",
+        "countriesText": "Italie, Allemagne, Royaume-Uni, Espagne, Suisse, États-Unis, Canada, Suède",
+        "groupName": "Rana",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "CA mondial du groupe non communiqué publiquement"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "Rana France",
+          "url": "https://www.pappers.fr/entreprise/rana-france-399918531"
+        },
+        {
+          "label": "rapport Rana",
+          "url": "https://rana-cdn.thron.com/static/WD7F6L_RANA_RapportoDiSostenibilita_2024_9_ENG_T8NK5D.pdf"
+        }
+      ],
+      "notes": "Le SIREN correspond à Rana France, siège à Nice. Le périmètre groupe comprend notamment les filiales en Allemagne, Royaume-Uni, Espagne, Suisse, États-Unis et Canada. ([turn2search15])",
+      "cautions": [],
+      "originalFields": {
+        "line": "452",
+        "name": "Rana France",
+        "siren": "399 918 531",
+        "hq": "Oui",
+        "countries": "Italie, Allemagne, Royaume-Uni, Espagne, Suisse, États-Unis, Canada, Suède",
+        "sector": "Agroalimentaire : pâtes fraîches, produits garnis et plats préparés",
+        "countryCount": "9 pays au niveau groupe",
+        "foreignSites": "Au moins 8 filiales étrangères documentées, en plus de Rana France",
+        "presenceDetails": "Mixte",
+        "revenueReported": "CA mondial du groupe non communiqué publiquement",
+        "franceRevenue": "117,2 M€ — 2024, entité française",
+        "worldEmployees": "Non communiqué publiquement",
+        "sourceText": "[Rana France](https://www.pappers.fr/entreprise/rana-france-399918531) ; [rapport Rana](https://rana-cdn.thron.com/static/WD7F6L_RANA_RapportoDiSostenibilita_2024_9_ENG_T8NK5D.pdf)",
+        "notes": "Le SIREN correspond à Rana France, siège à Nice. Le périmètre groupe comprend notamment les filiales en Allemagne, Royaume-Uni, Espagne, Suisse, États-Unis et Canada. ([turn2search15])"
+      }
+    },
+    {
+      "id": "lot-16-453",
+      "siren": "391371101",
+      "lot": 16,
+      "line": 453,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Eurotorp",
+        "sector": "Défense navale : conception, intégration et commercialisation de torpilles légères MU90",
+        "countryCount": "2 pays impliqués",
+        "foreignSites": "Aucun site étranger propre confirmé ; consortium franco-italien",
+        "presenceDetails": "Opérationnelle / consortium",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "Non communiqué publiquement",
+        "hq": "France",
+        "presenceType": "Inconnue",
+        "presenceScope": "Inconnu",
+        "countriesText": "Italie",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "Non communiqué publiquement"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "Eurotorp – présentation",
+          "url": "https://www.eurotorp.com/who-we-are/"
+        },
+        {
+          "label": "produit MU90",
+          "url": "https://www.eurotorp.com/our-product/"
+        }
+      ],
+      "notes": "Le SIREN correspond bien à Eurotorp, GEIE situé à Vallauris. Le consortium est établi entre acteurs français et italiens ; le programme MU90 est développé et produit conjointement par la France et l’Italie. ([turn3search0]turn3search3)",
+      "cautions": [
+        "Coopération franco-italienne en consortium : aucun site étranger propre établi dans le lot."
+      ],
+      "originalFields": {
+        "line": "453",
+        "name": "Eurotorp",
+        "siren": "391 371 101",
+        "hq": "Oui",
+        "countries": "Italie",
+        "sector": "Défense navale : conception, intégration et commercialisation de torpilles légères MU90",
+        "countryCount": "2 pays impliqués",
+        "foreignSites": "Aucun site étranger propre confirmé ; consortium franco-italien",
+        "presenceDetails": "Opérationnelle / consortium",
+        "revenueReported": "Non communiqué publiquement",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "Non communiqué publiquement",
+        "sourceText": "[Eurotorp – présentation](https://www.eurotorp.com/who-we-are/) ; [produit MU90](https://www.eurotorp.com/our-product/)",
+        "notes": "Le SIREN correspond bien à Eurotorp, GEIE situé à Vallauris. Le consortium est établi entre acteurs français et italiens ; le programme MU90 est développé et produit conjointement par la France et l’Italie. ([turn3search0]turn3search3)"
+      }
+    },
+    {
+      "id": "lot-16-474",
+      "siren": "378317721",
+      "lot": 16,
+      "line": 474,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "Bechtle Comsoft",
+        "sector": "Services et distribution IT : logiciels, cloud, cybersécurité, infrastructures et services managés",
+        "countryCount": "14 pays européens au niveau groupe",
+        "foreignSites": "Nombre hors France non isolé ; 120+ implantations au niveau groupe ; filiale française à 100 %.",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "≈798,3 M€ de volume d’affaires France — 2025, périmètre Bechtle France",
+        "worldEmployees": "15 553 — 2025, groupe Bechtle",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Groupe",
+        "countriesText": "Allemagne, Belgique, Pays-Bas, Suisse, Autriche, Espagne, Italie, Portugal, Royaume-Uni, Pologne, République tchèque, Hongrie, Irlande",
+        "groupName": "Bechtle",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": 6410000000,
+          "currency": "EUR",
+          "year": "2025",
+          "scope": "Groupe",
+          "reported": "6,41 Md€ de CA — 2025, groupe Bechtle"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "Rapport annuel Bechtle 2025",
+          "url": "https://reports.bechtle.com/annual-report/2025/"
+        },
+        {
+          "label": "filiales",
+          "url": "https://reports.bechtle.com/annual-report/2025/consolidated-financial-statements/notes/subsidiaries-of-bechtle-ag.html"
+        }
+      ],
+      "notes": "Le SIREN correspond à Bechtle Comsoft SAS, siège à Illkirch-Graffenstaden. La société est détenue à 100 % par Bechtle et s’insère dans un groupe présent dans 14 pays européens. ([turn0search4]turn4view0turn4view1)",
+      "cautions": [
+        "120+ implantations concernent le groupe ; leur nombre hors France n’est pas isolé. Le volume d’affaires Bechtle France n’est pas un CA mondial consolidé."
+      ],
+      "originalFields": {
+        "line": "474",
+        "name": "Bechtle Comsoft",
+        "siren": "378 317 721",
+        "hq": "Oui",
+        "countries": "Allemagne, Belgique, Pays-Bas, Suisse, Autriche, Espagne, Italie, Portugal, Royaume-Uni, Pologne, République tchèque, Hongrie, Irlande",
+        "sector": "Services et distribution IT : logiciels, cloud, cybersécurité, infrastructures et services managés",
+        "countryCount": "14 pays européens au niveau groupe",
+        "foreignSites": "120+ implantations au niveau groupe ; Bechtle Comsoft est une filiale française à 100 %",
+        "presenceDetails": "Mixte",
+        "revenueReported": "6,41 Md€ de CA — 2025, groupe Bechtle",
+        "franceRevenue": "≈798,3 M€ de volume d’affaires France — 2025, périmètre Bechtle France",
+        "worldEmployees": "15 553 — 2025, groupe Bechtle",
+        "sourceText": "[Rapport annuel Bechtle 2025](https://reports.bechtle.com/annual-report/2025/) ; [filiales](https://reports.bechtle.com/annual-report/2025/consolidated-financial-statements/notes/subsidiaries-of-bechtle-ag.html)",
+        "notes": "Le SIREN correspond à Bechtle Comsoft SAS, siège à Illkirch-Graffenstaden. La société est détenue à 100 % par Bechtle et s’insère dans un groupe présent dans 14 pays européens. ([turn0search4]turn4view0turn4view1)"
+      }
+    },
+    {
+      "id": "lot-16-480",
+      "siren": "399384890",
+      "lot": 16,
+      "line": 480,
+      "receivedOn": "2026-10-13",
+      "fields": {
+        "name": "IPRA France",
+        "sector": "Arômes alimentaires et compositions de parfumerie",
+        "countryCount": "1 pays avec filiale propre ; >70 pays commerciaux",
+        "foreignSites": "1 filiale étrangère : IPRA Polska, détenue à 80 % ; réseau d’agents commerciaux",
+        "presenceDetails": "Mixte",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "Environ 130 au niveau groupe — donnée publique historique",
+        "hq": "France",
+        "presenceType": "Mixte",
+        "presenceScope": "Groupe",
+        "countriesText": "Pologne ; Autre : plus de 70 pays d’exportation",
+        "groupName": "IPRA",
+        "groupRelation": "Oui",
+        "revenue": {
+          "amount": null,
+          "currency": "EUR",
+          "year": "",
+          "scope": "Inconnu",
+          "reported": "CA mondial du groupe non communiqué publiquement"
+        }
+      },
+      "sourceLinks": [
+        {
+          "label": "IPRA – groupe",
+          "url": "https://www.iprafragrances.com/"
+        },
+        {
+          "label": "comptes IPRA",
+          "url": "https://www.pappers.fr/entreprise/ipra-france-industrie-de-parfumerie-et-recherches-aromatiques-399384890/comptes/IPRA%20FRANCE%20INDUSTRIE%20DE%20PARFUMERIE%20ET%20RECHERCHES%20AROMATIQUES%20-%20Comptes%20sociaux%202021%2006-09-2022.pdf"
+        }
+      ],
+      "notes": "Le SIREN correspond à IPRA France, basée à Mouans-Sartoux. Le groupe possède IPRA Polska en Pologne et exporte via un réseau d’agents dans plus de 70 pays. ([turn3search1]turn3search4turn3search13)",
+      "cautions": [],
+      "originalFields": {
+        "line": "480",
+        "name": "IPRA France",
+        "siren": "399 384 890",
+        "hq": "Oui",
+        "countries": "Pologne ; Autre : plus de 70 pays d’exportation",
+        "sector": "Arômes alimentaires et compositions de parfumerie",
+        "countryCount": "1 pays avec filiale propre ; >70 pays commerciaux",
+        "foreignSites": "1 filiale étrangère : IPRA Polska, détenue à 80 % ; réseau d’agents commerciaux",
+        "presenceDetails": "Mixte",
+        "revenueReported": "CA mondial du groupe non communiqué publiquement",
+        "franceRevenue": "Non communiqué publiquement",
+        "worldEmployees": "Environ 130 au niveau groupe — donnée publique historique",
+        "sourceText": "[IPRA – groupe](https://www.iprafragrances.com/) ; [comptes IPRA](https://www.pappers.fr/entreprise/ipra-france-industrie-de-parfumerie-et-recherches-aromatiques-399384890/comptes/IPRA%20FRANCE%20INDUSTRIE%20DE%20PARFUMERIE%20ET%20RECHERCHES%20AROMATIQUES%20-%20Comptes%20sociaux%202021%2006-09-2022.pdf)",
+        "notes": "Le SIREN correspond à IPRA France, basée à Mouans-Sartoux. Le groupe possède IPRA Polska en Pologne et exporte via un réseau d’agents dans plus de 70 pays. ([turn3search1]turn3search4turn3search13)"
+      }
+    }
+  ],
+  "followups": [
+    {
+      "siren": "761200773",
+      "followup": "À rechercher par l’utilisateur",
+      "reason": "Accès au site Tiflex refusé par le réseau (403) lors du contrôle de connectivité du 13/10/2026. Les recherches historiques sont conservées.",
+      "url": "https://www.tiflex.com/quelques-dates/",
+      "observedOn": "2026-10-13"
+    }
+  ]
+}
