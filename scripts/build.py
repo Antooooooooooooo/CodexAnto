@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Construit le HTML autonome à partir des sources maintenables (aucun réseau)."""
 import json
+import base64
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 html = (ROOT / 'index.template.html').read_text()
+logo = base64.b64encode((ROOT / 'assets/orange-logo.svg').read_bytes()).decode()
+html = html.replace('src="assets/orange-logo.svg"', 'src="data:image/svg+xml;base64,' + logo + '"')
 license_text = (ROOT / 'vendor/EXCELJS-LICENSE').read_text()
 html = html.replace('<head>', '<head>\n<!-- ExcelJS 4.4.0 — third-party license\n' + license_text + '\n-->')
 data = json.loads((ROOT / 'data/recherches-historiques.json').read_text())

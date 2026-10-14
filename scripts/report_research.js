@@ -8,6 +8,10 @@ const registry = verified.records.filter(e => e.kind === "registry"), docs = ver
 const scoped = registry.map(e => records[e.siren]);
 const report = {
   consultation: "2026-10-13",
+  criteres_ciblage: {pays: D.BORDER, siege: "Tous", ca_minimum_eur: 0, presence: "Implantations propres", groupes_documentes: true},
+  cibles_documentaires_selon_ciblage_par_defaut: scoped.filter(r => D.qualify(r, {
+    targets: D.BORDER, hq: "any", minRevenue: 0, operationalOnly: true, includeGroups: true
+  }).status === "Cible confirmée").length,
   perimetre: "719 SIREN historiques rapprochés du portefeuille fourni ; aucun contenu du classeur publié.",
   sieges_et_activites_verifies: registry.length,
   sieges_france: scoped.filter(r => r.registeredCountry === "France").length,
@@ -28,7 +32,7 @@ const report = {
     "Les rapports plus anciens sont conservés dans les pièces sans remplacer un exercice plus récent fourni par l'utilisateur ; la source ancienne n'atteste pas ce chiffre récent.",
     "Une devise non explicitée reste à préciser ; aucune conversion de change ou date d'exercice n'est inventée.",
     "Les champs internationaux ne sont pas tous renseignés. Une information non trouvée ne prouve pas l'absence de présence ou de potentiel international.",
-    "Les constats documentaires et les recherches historiques doivent être relus avant confirmation commerciale."
+    "La qualification documentaire ne garantit pas le besoin client ni une opportunité de vente ; la couverture Orange et l'intérêt commercial restent à valider."
   ]
 };
 fs.writeFileSync(path.join(root, "data", "bilan-recherches.json"), JSON.stringify(report, null, 2) + "\n");

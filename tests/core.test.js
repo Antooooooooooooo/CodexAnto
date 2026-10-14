@@ -372,7 +372,7 @@ test('Registre : 719 SIREN exacts, cinq sièges étrangers, six fermetures, donn
     assert.equal(r.hq, e.fields.registeredCountry);
     assert.equal(r.reviewed, false);
     assert.equal(D.proof(r, 'hq'), true);
-    assert.equal(D.qualify(r, criteria).status, 'À qualifier');
+    if (!D.documentaryProof(r, 'presence')) assert.equal(D.qualify(r, criteria).status, 'À qualifier');
     assert.deepEqual(r.legacy.verification, legacy.verification[e.siren] || {});
     D.validateResearch(r);
   }
@@ -454,4 +454,52 @@ test('Migration des saisies : nouveaux registres et pièces conservés sans écr
   assert.equal(migrated.contributions.filter(e=>e.kind === 'registry').length, 1);
   D.validateResearch(migrated);
   assert.deepEqual(D.reconcileResearch(base['378317721'], migrated), migrated);
+});
+
+
+test('Ciblage documentaire : onze cibles réelles sans relecture forcée, pays opérationnels exacts', () => {
+  const {base} = verifiedRecords();
+  const qualified = Object.values(base).filter(r => D.qualify(r, criteria).status === 'Cible confirmée');
+  assert.equal(qualified.length, 11);
+  for (const r of qualified) {
+    assert.equal(r.reviewed, false);
+    assert.equal(D.qualify(r, criteria).basis, 'Recherche documentaire');
+    assert.equal(r.registryState, 'Active');
+  }
+  assert.deepEqual(D.qualify(base['592052302'], criteria).matched, D.BORDER);
+  const erowa = D.qualify(base['342484748'], criteria);
+  assert.ok(!erowa.matched.includes('Belgique') && !erowa.matched.includes('Luxembourg'));
+  assert.notEqual(D.qualify(base['342484748'], {...criteria,targets:['Luxembourg']}).status,'Cible confirmée');
+});
+test('Un simple lien ajouté ou une pièce falsifiée ne confirme pas automatiquement une cible', () => {
+  const r=researched();r.reviewed=false;
+  r.contributions=[{id:'piece-importee-fausse',kind:'documentary',fields:{countriesText:'Italie'}}];
+  assert.equal(D.documentaryProof(r,'presence'),false);
+  assert.notEqual(D.qualify(r,criteria).status,'Cible confirmée');
+  const {base}=verifiedRecords(), changed=structuredClone(base['592052302']);
+  changed.operationalCountries=['Italie'];
+  assert.equal(D.documentaryProof(changed,'presence'),false);
+  assert.notEqual(D.qualify(changed,criteria).status,'Cible confirmée');
+});
+test('Le CA inconnu ne bloque pas la prospection sans seuil ; siège étranger reste un critère facultatif', () => {
+  const {base}=verifiedRecords(),r=base['307378489'];
+  r.revenue={amount:null,currency:'EUR',year:'',scope:'Inconnu',reported:''};
+  assert.equal(D.qualify(r,criteria).status,'Cible confirmée');
+  assert.notEqual(D.qualify(r,{...criteria,minRevenue:1}).status,'Cible confirmée');
+  assert.equal(D.qualify(base['592052302'],{...criteria,hq:'foreign'}).status,'Hors critères');
+  assert.equal(D.qualify(base['592052302'],{...criteria,hq:'France'}).status,'Cible confirmée');
+});
+test('Présence mixte : une ventilation inconnue ne prouve pas des implantations dans tous les pays', () => {
+  const r=researched();r.presenceType='Mixte';r.operationalCountries=null;
+  assert.notEqual(D.qualify(r,criteria).status,'Cible confirmée');
+  assert.equal(D.qualify(r,{...criteria,operationalOnly:false}).status,'Cible confirmée');
+});
+test('Suivi commercial séparé des faits, sauvegardes antérieures compatibles et dates futures admises', () => {
+  const {base}=verifiedRecords(),r=base['592052302'];
+  const updated=D.validateResearch({...r,selected:true,commercialStatus:'Contacté',nextActionDate:'2026-11-15',commercialNotes:'Note interne'});
+  assert.equal(updated.selected,true);assert.equal(updated.commercialStatus,'Contacté');
+  assert.equal(D.qualify(updated,criteria).status,'Cible confirmée');
+  assert.equal(D.validateResearch({...r,commercialStatus:undefined,selected:undefined}).commercialStatus,'Non planifié');
+  assert.throws(()=>D.validateResearch({...r,commercialStatus:'Valeur inconnue'}),/Suivi commercial/);
+  assert.throws(()=>D.validateResearch({...r,nextActionDate:'2026-02-30'}),/prochaine action/);
 });

@@ -4,6 +4,9 @@
   const BORDER = ["Italie", "Suisse", "Luxembourg", "Belgique", "Allemagne"];
   const OTHER = "International — Autre";
   const UNKNOWN = "Non renseigné";
+  const COMMERCIAL_STATES = ["Non planifié", "À contacter", "Contacté", "Rendez-vous prévu", "À écarter"];
+  // Seules les pièces embarquées alimentent la qualification documentaire automatique.
+  const VERIFIED_SOURCES = new Map();
   const norm = (v) =>
     String(v ?? "")
       .normalize("NFD")
@@ -77,6 +80,10 @@
       analyzed: false,
       reviewed: false,
       noSignal: false,
+      selected: false,
+      commercialStatus: "Non planifié",
+      nextActionDate: "",
+      commercialNotes: "",
       sector: "",
       hq: "",
       groupName: "",
@@ -196,6 +203,7 @@
   function addContributions(records, supplied) {
     const result = structuredClone(records);
     for (const entry of supplied.records || []) {
+      if (["registry", "documentary"].includes(entry.kind)) VERIFIED_SOURCES.set(entry.id, entry);
       const r = result[entry.siren] || emptyResearch(entry.siren);
       const applied = new Set();
       for (const [field, value] of Object.entries(entry.fields)) {
@@ -640,6 +648,27 @@
     const date = Object.hasOwn(r.sourceDates || {}, field) ? r.sourceDates[field] : r.checkedAt;
     return !!safeURL(r.sources?.[field]) && validDate(date);
   }
+  function documentaryProof(r, field) {
+    if (!proof(r, field)) return false;
+    const sameCountries = (a, b) => JSON.stringify(splitCountries(a || []).filter(c => c !== "France").sort()) ===
+      JSON.stringify(splitCountries(b || []).filter(c => c !== "France").sort());
+    return (r.contributions || []).some(receipt => {
+      const entry = VERIFIED_SOURCES.get(receipt.id);
+      if (!entry || entry.siren !== r.siren || entry.fieldSources?.[field] !== r.sources[field] ||
+          entry.checkedAt !== (r.sourceDates?.[field] || r.checkedAt)) return false;
+      const f = entry.fields;
+      if (field === "presence") {
+        if (!Object.hasOwn(f, "countriesText") || !sameCountries(f.countriesText, r.documentedCountries)) return false;
+        return ["presenceScope", "presenceType"].every(k => !Object.hasOwn(f, k) || f[k] === r[k]) &&
+          (!Object.hasOwn(f, "operationalCountries") || sameCountries(f.operationalCountries, r.operationalCountries));
+      }
+      if (field === "group") return f.groupRelation === "Oui" &&
+        ["groupName", "groupHQ", "groupRelation"].every(k => !Object.hasOwn(f, k) || f[k] === r[k]);
+      if (field === "revenue") return f.revenue &&
+        ["amount", "currency", "year", "scope"].every(k => f.revenue[k] === r.revenue[k]);
+      return Object.hasOwn(f, field) && f[field] === r[field];
+    });
+  }
   function qualify(r, criteria) {
     if (!r?.analyzed)
       return {
@@ -657,13 +686,14 @@
       reasons.push(
         "Résultats contradictoires : présence ciblée renseignée et absence de signal cochée.",
       );
-    if (!r.reviewed) reasons.push("Analyse à relire et preuves à valider.");
+    const documented = documentaryProof(r, "presence");
+    if (!r.reviewed && !documented) reasons.push("Présence à valider : recherche historique ou source non vérifiée.");
     if (r.registryState === "Fermée")
       reasons.push("Entité fermée au registre : vérifier le compte actif successeur avant qualification.");
     if (!proof(r, "presence"))
       reasons.push("Source et date de présence internationale requises.");
     if (!matches.length)
-      (r.reviewed && (r.noSignal || r.countries.length) && proof(r, "presence")
+      ((r.reviewed || documented) && (r.noSignal || r.countries.length) && proof(r, "presence")
         ? excluded
         : reasons
       ).push("Aucune présence documentée dans les pays ciblés.");
@@ -683,11 +713,15 @@
     if (criteria.operationalOnly && r.operationalCountries !== null &&
         !matches.some((c) => (r.operationalCountries || []).includes(c)))
       reasons.push("Aucun pays ciblé avec implantation propre documentée dans la ventilation par pays.");
+    if (criteria.operationalOnly && r.presenceType === "Mixte" && r.operationalCountries == null)
+      reasons.push("Préciser les pays avec implantation propre pour cette présence mixte.");
     if (r.presenceScope === "Groupe") {
       if (!criteria.includeGroups)
         excluded.push("Présence au niveau du groupe hors critères.");
       else if (r.groupRelation !== "Oui" || !r.groupName || !proof(r, "group"))
         reasons.push("Lien de l’entité avec le groupe à documenter.");
+      else if (!r.reviewed && !documentaryProof(r, "group"))
+        reasons.push("Lien au groupe à valider pour l’entité cliente.");
     } else if (r.presenceScope === "Réseau de partenaires") {
       if (criteria.operationalOnly) excluded.push("Présence par partenaires indépendants hors critères opérationnels.");
     } else if (r.presenceScope !== "Entreprise")
@@ -697,6 +731,11 @@
         reasons.push("Siège de l’entité à documenter.");
       else if (r.hq !== "France")
         excluded.push("Siège de l’entité hors de France.");
+      else if (!r.reviewed && !documentaryProof(r, "hq")) reasons.push("Siège français à valider.");
+    } else if (criteria.hq === "foreign") {
+      if (!r.hq || !proof(r, "hq")) reasons.push("Siège hors France à documenter.");
+      else if (r.hq === "France") excluded.push("Siège de l’entité en France.");
+      else if (!r.reviewed && !documentaryProof(r, "hq")) reasons.push("Siège hors France à valider.");
     }
     if (criteria.minRevenue > 0) {
       if (
@@ -711,9 +750,10 @@
         );
       else if (r.revenue.amount < criteria.minRevenue)
         excluded.push("CA mondial inférieur au seuil.");
+      else if (!r.reviewed && !documentaryProof(r, "revenue")) reasons.push("CA mondial à valider pour appliquer le seuil.");
     }
     const status =
-      excluded.length && r.reviewed
+      excluded.length && (r.reviewed || documented)
         ? "Hors critères"
         : reasons.length
           ? "À qualifier"
@@ -727,7 +767,9 @@
             ? "neutral"
             : "warning",
       reasons: [...excluded, ...reasons],
-      matched: matches,
+      matched: criteria.operationalOnly && r.operationalCountries !== null
+        ? matches.filter(c => (r.operationalCountries || []).includes(c)) : matches,
+      basis: status === "Cible confirmée" ? (r.reviewed ? "Relecture analyste" : "Recherche documentaire") : "",
     };
   }
   function opportunities(c, r) {
@@ -763,11 +805,19 @@
       "groupHQ",
       "notes",
       "checkedAt",
+      "nextActionDate",
+      "commercialNotes",
       ...EXTRA_FIELDS,
     ])
       r[k] = text(raw[k]);
     for (const k of ["analyzed", "reviewed", "noSignal"])
       r[k] = raw[k] === true;
+    r.selected = raw.selected === true;
+    r.commercialStatus = raw.commercialStatus || "Non planifié";
+    if (!COMMERCIAL_STATES.includes(r.commercialStatus)) throw Error("Suivi commercial invalide.");
+    if (r.nextActionDate && (!/^\d{4}-\d{2}-\d{2}$/.test(r.nextActionDate) ||
+        Number.isNaN(Date.parse(r.nextActionDate)) || new Date(r.nextActionDate).toISOString().slice(0, 10) !== r.nextActionDate))
+      throw Error("Date de prochaine action invalide.");
     for (const [key, allowed] of Object.entries({
       groupRelation: ["Oui", "Non", "Inconnu"],
       presenceScope: ["Entreprise", "Groupe", "Réseau de partenaires", "Inconnu"],
@@ -866,6 +916,7 @@
     BORDER,
     OTHER,
     UNKNOWN,
+    COMMERCIAL_STATES,
     norm,
     text,
     unique,
@@ -887,6 +938,7 @@
     qualify,
     opportunities,
     proof,
+    documentaryProof,
     validDate,
     validateResearch,
     csvCell,

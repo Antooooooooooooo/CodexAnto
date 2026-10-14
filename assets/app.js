@@ -50,7 +50,7 @@
     fileName = "",
     page = 1,
     activeId = "",
-    sort = { key: "name", dir: 1 },
+    sort = { key: "status", dir: 1 },
     visible = [];
   let criteria = {
     targets: [...D.BORDER],
@@ -90,7 +90,7 @@
       Array.isArray(c.targets) &&
       c.targets.length > 0 &&
       c.targets.every((v) => [...D.BORDER, D.OTHER].includes(v)) &&
-      ["any", "France"].includes(c.hq) &&
+      ["any", "France", "foreign"].includes(c.hq) &&
       Number.isFinite(c.minRevenue) &&
       c.minRevenue >= 0 &&
       typeof c.operationalOnly === "boolean" &&
@@ -167,7 +167,11 @@
       )
       .join("");
   }
-  chips("countryFilters", [...D.BORDER, D.OTHER]);
+  chips("targetCountries", [...D.BORDER, D.OTHER], criteria.targets);
+  $("hq").value = criteria.hq;
+  $("minRevenue").value = criteria.minRevenue || "";
+  $("presenceRule").value = criteria.operationalOnly ? "operational" : "commercial";
+  $("groupRule").value = criteria.includeGroups ? "include" : "entity";
   function checked(id) {
     return [...$(id).querySelectorAll("input:checked")].map((el) => el.value);
   }
@@ -175,7 +179,7 @@
     const el = $(id),
       old = el.value;
     el.innerHTML =
-      `<option value="">${id === "vrc" || id === "sector" ? "Tous" : "Toutes"}</option>` +
+      `<option value="">${id === "vrc" ? "Tous" : "Toutes"}</option>` +
       D.unique(values)
         .sort((a, b) => a.localeCompare(b, "fr"))
         .map((v) => `<option value="${esc(v)}">${esc(v)}</option>`)
@@ -197,91 +201,35 @@
       rows.map((x) => x.c?.vrc || ""),
       [["unknown", "Non renseigné"]],
     );
-    fillSelect(
-      "sector",
-      rows.flatMap((x) => [x.c?.sector || "", x.r.sector]),
-      [["unknown", "Non renseigné"]],
-    );
   }
-  function filtered() {
-    const search = D.norm($("search").value),
-      countries = checked("countryFilters"),
-      min = D.number($("minRevenue").value);
-    return dataset().filter((x) => {
-      const { c, r, q, op } = x,
-        scope = $("scope").value;
-      if (
-        (scope === "portfolio" && !c) ||
-        (scope === "researchedPortfolio" && (!c || !r.analyzed)) ||
-        (scope === "orphan" && c) ||
-        (scope === "research" && !r.analyzed)
-      )
-        return false;
-      if (
-        search &&
-        !D.norm(
-          x.name + " " + x.id + " " + r.groupName + " " + (c?.groupName || ""),
-        ).includes(search)
-      )
-        return false;
-      if ($("status").value && q.status !== $("status").value) return false;
-      if ($("followup").value && D.followupStatus(r) !== $("followup").value)
-        return false;
-      const state = $("registryState").value;
-      if (state && (state === "unknown" ? !!r.registryState : r.registryState !== state)) return false;
-      if ($("analysis").value && r.analyzed !== ($("analysis").value === "yes"))
-        return false;
-      if (
-        countries.length &&
-        !D.zones(r.countries).some((p) => countries.includes(p))
-      )
-        return false;
+  const todayParis = () => new Intl.DateTimeFormat("fr-CA", {timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const actionDue = r => !!r.nextActionDate && r.nextActionDate <= todayParis() && r.commercialStatus !== "À écarter";
+  function filtered(ignoreView = false) {
+    const query = D.norm($("search").value), activity = D.norm($("sector").value);
+    return dataset().filter(({c,r,q,name,id}) => {
+      const scope = $("scope").value;
+      if ((scope === "portfolio" && !c) || (scope === "researchedPortfolio" && (!c || !r.analyzed)) ||
+          (scope === "research" && !r.analyzed && !r.selected && r.commercialStatus === "Non planifié" && !r.nextActionDate && !r.commercialNotes)) return false;
+      if (query && !D.norm(`${name} ${id} ${r.groupName} ${c?.groupName || ""}`).includes(query)) return false;
       for (const field of ["direction", "segment", "vrc"]) {
-        const v = $(field).value;
-        if (v && (v === "unknown" ? !!c?.[field] : c?.[field] !== v))
-          return false;
+        const value = $(field).value;
+        if (value && (value === "unknown" ? !!c?.[field] : value !== c?.[field])) return false;
       }
-      const sect = $("sector").value;
-      if (
-        sect &&
-        (sect === "unknown"
-          ? !!(r.sector || c?.sector)
-          : ![r.sector, c?.sector].includes(sect))
-      )
-        return false;
-      const hq = $("hq").value;
-      if (
-        (hq === "france" && r.hq !== "France") ||
-        (hq === "foreign" && (!r.hq || r.hq === "France")) ||
-        (hq === "unknown" && r.hq)
-      )
-        return false;
+      if (activity && !D.norm(`${c?.sector || ""} ${r.sector} ${r.registryActivity}`).includes(activity)) return false;
+      if ((criteria.hq === "France" && r.hq !== "France") ||
+          (criteria.hq === "foreign" && (!r.hq || r.hq === "France"))) return false;
       const group = $("group").value;
-      if (
-        (group === "foreign" &&
-          (r.groupRelation !== "Oui" ||
-            !r.groupHQ ||
-            r.groupHQ === "France")) ||
-        (group === "france" &&
-          (r.groupRelation !== "Oui" || r.groupHQ !== "France")) ||
-        (group === "yes" && r.groupRelation !== "Oui") ||
-        (group === "unknown" && r.groupRelation !== "Inconnu" && r.groupHQ)
-      )
-        return false;
-      if (
-        min !== null &&
-        min > 0 &&
-        (r.revenue.amount === null ||
-          r.revenue.currency !== "EUR" ||
-          r.revenue.amount < min)
-      )
-        return false;
-      if (
-        ($("gap").value === "yes" && (!op.known || !op.open.length)) ||
-        ($("gap").value === "unknown" && op.known)
-      )
-        return false;
-      return true;
+      if ((group === "foreign" && (!r.groupHQ || r.groupHQ === "France")) ||
+          (group === "france" && r.groupHQ !== "France") ||
+          (group === "unknown" && r.groupRelation !== "Inconnu" && r.groupHQ)) return false;
+      if (ignoreView) return true;
+      const view = $("view").value;
+      return view === "all" ||
+        (view === "targeted" && D.zones(r.countries).some(zone => criteria.targets.includes(zone))) ||
+        (view === "confirmed" && q.status === "Cible confirmée") ||
+        (view === "qualify" && q.status === "À qualifier") ||
+        (view === "unanalysed" && !r.analyzed) ||
+        (view === "selected" && r.selected) || (view === "due" && actionDue(r));
     });
   }
   function revenue(r) {
@@ -299,7 +247,7 @@
         x.r.revenue.amount !== null && x.r.revenue.currency === "EUR"
           ? x.r.revenue.amount
           : null,
-      status: x.q.status,
+      status: {"Cible confirmée":0,"À qualifier":1,"Non analysé":2,"Hors critères":3}[x.q.status],
     }[key];
   }
   function render() {
@@ -317,56 +265,33 @@
     });
     const pages = Math.max(1, Math.ceil(visible.length / 40));
     page = Math.min(page, pages);
-    const analyzed = visible.filter((x) => x.r.analyzed).length,
-      confirmed = visible.filter(
-        (x) => x.q.status === "Cible confirmée",
-      ).length,
-      gaps = visible.filter((x) => x.op.known && x.op.open.length).length;
+    const contextRows = filtered(true), selected = contextRows.filter(x => x.r.selected).length;
     $("metrics").innerHTML = [
-      {
-        n: visible.length,
-        label: "Entreprises dans la vue",
-        note: `${visible.filter((x) => x.c).length} dans le portefeuille importé`,
-      },
-      {
-        n: analyzed,
-        label: "Entreprises analysées",
-        note: "Recherche effectuée, qualification indépendante",
-      },
-      {
-        n: confirmed,
-        label: "Cibles confirmées",
-        note: "Selon les critères et preuves renseignées",
-        tone: "success",
-      },
-      {
-        n: gaps,
-        label: "Pistes de couverture",
-        note: "Pays présents hors couverture Orange connue",
-      },
-    ]
-      .map(
-        (x) =>
-          `<div class="metric ${x.tone || ""}"><span class="metric-label">${x.label}</span><strong>${x.n.toLocaleString("fr-FR")}</strong><p>${x.note}</p></div>`,
-      )
-      .join("");
-    $("resultCount").textContent =
-      `${visible.length.toLocaleString("fr-FR")} entreprise(s) · ${checked("countryFilters").length ? "Présence renseignée, à apprécier selon les preuves" : "Tous pays"} · Critères : ${criteria.targets.join(", ")}`;
-    $("tableBody").innerHTML =
-      visible
-        .slice((page - 1) * 40, page * 40)
-        .map((x) => {
-          const { c, r, q, op } = x;
-          const groupInfo =
-            r.groupRelation === "Oui"
-              ? `${r.groupName || "Groupe non nommé"} · ${r.groupHQ || "siège non renseigné"}`
-              : r.groupRelation === "Non"
-                ? "Pas de groupe renseigné"
-                : "Groupe à documenter";
-          return `<tr><td><button class="company-link" data-company="${x.id}">${esc(x.name)}</button>${sub(x.id)}${r.registryState === "Fermée" ? badge("Entité fermée au registre", "warning") : ""}${!c ? badge("Hors portefeuille importé") : c.duplicate ? badge("Doublon Excel", "warning") : ""}</td><td>${esc(c?.direction || D.UNKNOWN)}${sub(c?.segment || "MDM / HDM / SPES non renseigné")}</td><td>${esc(c?.vrc || D.UNKNOWN)}</td><td>${esc(c?.sector || D.UNKNOWN)}</td><td>${esc(c ? money(c.caOrange) : D.UNKNOWN)}${sub("CA de la relation Orange")}</td><td>${r.countries.length ? r.countries.map((p) => `<span class="country-label">${esc(p)}</span>`).join("") : esc(D.UNKNOWN)}${sub(`${r.presenceScope} · ${r.presenceType}`)}${r.uncertainCountries.length ? badge("Mentions incertaines", "warning") : ""}</td><td>${esc(r.sector || D.UNKNOWN)}${r.registryActivity && r.registryActivity !== r.sector ? sub(`Activité déclarée : ${r.registryActivity} · ${r.registryNAF}`) : ""}</td><td>${esc(r.hq || D.UNKNOWN)}${sub(groupInfo)}${r.hq && !D.proof(r, "hq") ? badge("Siège à sourcer", "warning") : ""}</td><td>${esc(revenue(r))}${sub(`${r.revenue.year || "Exercice non renseigné"} · ${r.revenue.scope}`)}${r.revenue.reported && r.revenue.amount === null ? badge("Montant historique", "warning") : ""}${r.registeredRevenue ? sub(`Comptes de la société : ${r.registeredRevenue.split(" — comptes")[0]} (périmètre distinct)`): ""}</td><td>${badge(r.analyzed ? "Analysé" : "Non analysé", r.analyzed ? "blue" : "neutral")}${sub(r.checkedAt ? `Dernière consultation : ${r.checkedAt}` : "Date non renseignée")}${sub(D.followupStatus(r))}${D.unique(r.contributions.map(contributionLabel)).map((label) => badge(label,"blue")).join("")}${r.reviewed ? sub("Analyse relue") : r.analyzed ? sub("À revalider") : ""}${link(r.sources.presence, "Présence") || (r.legacy?.verification?.source ? link(r.legacy.verification.source, "Source historique") : "")}</td><td>${badge(q.status, q.tone)}${sub(q.reasons[0] || "Critères satisfaits")}</td><td>${op.known ? esc(op.open.join(", ") || "Aucun écart identifié") : "Couverture Orange à renseigner"}${sub(op.known ? "Pistes à valider commercialement" : "Aucune opportunité déduite automatiquement")}</td></tr>`;
-        })
-        .join("") ||
-      '<tr><td colspan="12" class="empty">Aucune entreprise ne correspond aux filtres. Réinitialisez-les ou importez le portefeuille.</td></tr>';
+      {n:contextRows.length, label:"Comptes dans le périmètre", note:"Fichier et filtres commerciaux", view:"all"},
+      {n:contextRows.filter(x=>x.q.status === "Cible confirmée").length, label:"Cibles confirmées", note:"Présence ciblée documentée", view:"confirmed", tone:"success"},
+      {n:contextRows.filter(x=>x.q.status === "À qualifier").length, label:"À qualifier", note:"Informations à valider ou compléter", view:"qualify"},
+      {n:selected, label:"Ma sélection", note:"Comptes retenus pour la prospection", view:"selected"},
+    ].map(x=>`<button class="metric ${x.tone || ""} ${$("view").value === x.view ? "active" : ""}" data-view="${x.view}" aria-label="Afficher ${esc(x.label)}"><span class="metric-label">${x.label}</span><strong>${x.n.toLocaleString("fr-FR")}</strong><span class="metric-note">${x.note}</span></button>`).join("");
+    $("resultCount").textContent = `${visible.length.toLocaleString("fr-FR")} compte(s) · ${$("view").selectedOptions[0].textContent}`;
+    const active = [criteria.targets.join(", "), criteria.operationalOnly ? "Implantations propres" : "Présence commerciale incluse",
+      ...["direction", "segment", "vrc", "group"].filter(id => $(id).value).map(id => $(id).selectedOptions[0].textContent),
+      ...(criteria.hq !== "any" ? [criteria.hq === "France" ? "Siège français" : "Siège hors France"] : []),
+      ...(criteria.minRevenue ? [`CA mondial ≥ ${money(criteria.minRevenue)}`] : []),
+      ...($("sector").value ? [`Activité : ${$("sector").value}`] : []),
+      ...(!criteria.includeGroups ? ["Entité cliente uniquement"] : [])];
+    $("activeFilters").textContent = active.join(" · ");
+    $("selectViewBtn").disabled = !visible.length;
+    $("selectViewBtn").textContent = visible.length && visible.every(x=>x.r.selected) ? "Retirer cette vue de ma sélection" : "Sélectionner cette vue";
+    $("tableBody").innerHTML = visible.slice((page - 1) * 40, page * 40).map(({id,c,r,q,name}) => {
+      const knownCountries = r.documentedCountries ?? r.countries;
+      const countryLabels = knownCountries.slice(0,3).map(country => `<span class="country-label">${esc(country)}</span>`).join("") +
+        (knownCountries.length > 3 ? `<span class="country-label">+${knownCountries.length - 3}</span>` : "");
+      const activity = r.sector || r.registryActivity || D.UNKNOWN;
+      const statusNote = q.status === "Cible confirmée" ? q.matched.join(", ") : q.reasons[0] || "";
+      const groupInfo = r.groupName ? `${r.groupName} · ${r.groupHQ || "siège à préciser"}` : "Groupe à préciser";
+      const action = r.commercialStatus === "Non planifié" ? (q.status === "Cible confirmée" ? "Contact à préparer" : "Non planifié") : r.commercialStatus;
+      return `<tr class="${r.selected ? "is-selected" : ""}"><td class="selection-col"><input type="checkbox" data-select="${id}" aria-label="Sélectionner ${esc(name)}" ${r.selected ? "checked" : ""}></td><td><button class="company-link" data-company="${id}">${esc(name)}</button>${sub(id)}${r.registryState === "Fermée" ? badge("Entité fermée", "warning") : c?.duplicate ? badge("Doublon Excel", "warning") : ""}</td><td>${esc(c?.vrc || "—")}${sub([c?.direction, c?.segment].filter(Boolean).join(" · ") || "Excel non renseigné")}</td><td>${esc(c ? money(c.caOrange) : "—")}${sub("Relation Orange")}</td><td><span class="clamp" title="${esc(activity)}">${esc(activity)}</span><div class="country-list">${countryLabels || sub("Pays à préciser")}</div>${sub(r.presenceScope === "Inconnu" ? "Périmètre à préciser" : `${r.presenceScope} · ${r.presenceType}`)}${knownCountries.length && !D.documentaryProof(r,"presence") && !r.reviewed ? sub("Présence historique / fournie à vérifier") : ""}</td><td>${esc(r.hq || "À préciser")}${sub(groupInfo)}</td><td><span class="clamp" title="${esc(revenue(r))}">${esc(revenue(r))}</span>${sub(`${r.revenue.year || "Exercice à préciser"} · ${(r.revenue.scope === "Inconnu" ? "périmètre à préciser" : r.revenue.scope)}`)}${(r.revenue.amount !== null || r.revenue.reported || r.publishedRevenue) && !D.proof(r,"revenue") ? sub("Montant historique / fourni à vérifier") : ""}</td><td>${badge(q.status, q.tone)}<span class="sub clamp" title="${esc(statusNote)}">${esc(statusNote)}</span>${q.basis ? sub(q.basis) : ""}</td><td>${esc(action)}${r.nextActionDate ? sub(`${actionDue(r) ? "Relance à faire" : "Prochaine action"} : ${displayDate(r.nextActionDate)}`) : ""}<button class="row-action" data-company="${id}" data-sales="true">Ouvrir le suivi →</button></td></tr>`;
+    }).join("") || '<tr><td colspan="9" class="empty">Aucun compte dans cette vue. <button class="text-button" data-show-all>Voir toutes les entreprises</button> ou réinitialisez le ciblage.</td></tr>';
     $("pageMeta").textContent =
       `Page ${page} / ${pages} · 40 entreprises par page`;
     $("prevBtn").disabled = page <= 1;
@@ -381,6 +306,78 @@
         );
     }
   }
+  function displayDate(date) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(date || "") ? date.split("-").reverse().join("/") : "date à préciser";
+  }
+  function profileTab(panel) {
+    for (const button of document.querySelectorAll("[data-profile-tab]")) {
+      const active = button.dataset.profileTab === panel;
+      button.setAttribute("aria-selected", String(active));button.tabIndex=active ? 0 : -1;
+      $(button.dataset.profileTab).hidden = !active;
+    }
+  }
+  const tabButtons = [...document.querySelectorAll("[data-profile-tab]")];
+  for (const [index,button] of tabButtons.entries()) {
+    button.addEventListener("click",()=>profileTab(button.dataset.profileTab));
+    button.addEventListener("keydown",event=>{
+      let next;
+      if (event.key === "ArrowRight") next=(index+1)%tabButtons.length;
+      if (event.key === "ArrowLeft") next=(index+tabButtons.length-1)%tabButtons.length;
+      if (event.key === "Home") next=0;
+      if (event.key === "End") next=tabButtons.length-1;
+      if (next !== undefined) {event.preventDefault();profileTab(tabButtons[next].dataset.profileTab);tabButtons[next].focus();}
+    });
+  }
+  function commercialBrief(c,r,q,op) {
+    return [c?.name || r.name || `Entreprise ${r.siren}`,`SIREN : ${r.siren}`,
+      `Commercial / portefeuille : ${[c?.vrc,c?.direction,c?.segment].filter(Boolean).join(" · ") || "À renseigner dans l’Excel"}`,
+      `Qualification documentaire : ${q.status}${q.basis ? " — "+q.basis : ""}`,
+      `Pays répondant au ciblage : ${q.matched.join(", ") || "Aucun pays établi selon les critères"}`,
+      `Présence : ${r.presenceType} · ${r.presenceScope}`,
+      `Secteur : ${r.sector || r.registryActivity || "À préciser"}`,
+      `Siège de l’entité : ${r.hq || "À préciser"}`,
+      `Groupe : ${r.groupName || "À préciser"} · siège ${r.groupHQ || "à préciser"}`,
+      `CA mondial déclaré : ${revenue(r)} · ${r.revenue.year || "exercice à préciser"} · ${r.revenue.scope}${D.proof(r,"revenue") ? "" : " (à vérifier)"}`,
+      op.known ? `Pays déjà couverts par Orange : ${op.covered.join(", ") || "aucun pays renseigné"}.` : "",
+      op.known ? `Pays hors couverture Orange renseignée : ${op.open.join(", ") || "Aucun écart identifié"}. Couverture fournie par ${op.source}.` : "Couverture Orange : à valider avec le commercial.",
+      `Preuve de présence : ${r.sources.presence || "À établir"}`,
+      `Suivi : ${r.commercialStatus}${r.nextActionDate ? " · prochaine action "+displayDate(r.nextActionDate) : ""}`,
+      r.commercialNotes ? `Notes commerciales : ${r.commercialNotes}` : "",
+      "Questions pour le contact : quels pays sont déjà accompagnés par Orange ? Quels besoins de connectivité ou de sécurité existent dans les autres implantations ? Qui pilote ces sujets ?",
+    ].filter(Boolean).join("\n");
+  }
+  async function saveCommercial(id,patch) {
+    const prior=research(id), r=D.validateResearch({...prior,name:prior.name || clients[id]?.name || "",...patch});
+    r.history=[...prior.history,{at:new Date().toISOString(),event:"Suivi commercial",previous:{selected:prior.selected,commercialStatus:prior.commercialStatus,nextActionDate:prior.nextActionDate,commercialNotes:prior.commercialNotes}}];
+    overrides[id]=r;await persist();render();
+  }
+  $("tableBody").addEventListener("change",async event=>{
+    const checkbox=event.target.closest("[data-select]");
+    if (checkbox) await saveCommercial(checkbox.dataset.select,{selected:checkbox.checked});
+  });
+  $("selectViewBtn").addEventListener("click",async()=>{
+    const selected = !visible.every(x=>x.r.selected), entries=[...visible];
+    for (const {id,r,name} of entries) overrides[id]=D.validateResearch({...r,name:r.name || name,selected});
+    await persist();render();notice(`${entries.length} compte(s) ${selected ? "ajoutés à" : "retirés de"} votre sélection.`);
+  });
+  $("detailSelectBtn").addEventListener("click",async()=>{
+    await saveCommercial(activeId,{selected:!research(activeId).selected});detail(activeId);
+  });
+  $("prepareContactBtn").addEventListener("click",()=>profileTab("salesPanel"));
+  $("commercialForm").addEventListener("submit",async event=>{
+    event.preventDefault();const form=event.target;
+    try {
+      await saveCommercial(activeId,{selected:form.elements.namedItem("selected").checked,
+        commercialStatus:form.elements.namedItem("commercialStatus").value,
+        nextActionDate:form.elements.namedItem("nextActionDate").value,
+        commercialNotes:form.elements.namedItem("commercialNotes").value});
+      detail(activeId,"salesPanel");$("copyStatus").textContent="Suivi enregistré.";
+    } catch(error) {$("commercialError").textContent=error.message;$("commercialError").hidden=false;}
+  });
+  $("copyBriefBtn").addEventListener("click",async()=>{
+    try {await navigator.clipboard.writeText($("commercialBrief").value);$("copyStatus").textContent="Synthèse copiée.";}
+    catch {$("commercialBrief").focus();$("commercialBrief").select();$("copyStatus").textContent="Texte sélectionné : utilisez Ctrl+C ou ⌘C.";}
+  });
   function cellValue(cell) {
     const v = cell.value;
     if (v === null || v === undefined) return "";
@@ -455,7 +452,9 @@
       loadedSheets = sheets;
       fileName = file.name;
       page = 1;
-      $("scope").value = "portfolio";
+      $("scope").querySelectorAll("option").forEach(option => option.disabled = false);
+      $("scope").value = "researchedPortfolio";
+      $("view").value = "targeted";
       $("fileMeta").textContent =
         `${fileName} · ${Object.keys(clients).length} entreprises importées · Aucune donnée envoyée sur Internet`;
       $("importDiagnostic").hidden = false;
@@ -518,7 +517,7 @@
       $("dropzone").classList.toggle("hover", type === "dragover");
       if (type === "drop") importExcel(e.dataTransfer.files[0]);
     });
-  function detail(id) {
+  function detail(id, panel = "summaryPanel") {
     activeId = id;
     const c = clients[id],
       r = research(id),
@@ -527,10 +526,23 @@
     $("detailName").textContent = c?.name || r.name || `Entreprise · ${id}`;
     $("detailIdentity").textContent =
       `SIREN ${id} · ${c ? "Dans le portefeuille importé" : "Hors portefeuille importé"}`;
-    $("qualificationDetail").innerHTML =
-      `${badge(q.status, q.tone)} ${badge(r.analyzed ? "Analysé" : "Non analysé", "blue")}<ul>${q.reasons.map((s) => `<li>${esc(s)}</li>`).join("") || "<li>Présence documentée, analyse relue et critères satisfaits.</li>"}</ul><p>${esc(op.known ? `Orange accompagne : ${op.covered.join(", ") || "aucun pays renseigné"}. Pays à examiner : ${op.open.join(", ") || "aucun écart identifié"}. Source : ${op.source}` : "Les pays déjà accompagnés par Orange sont inconnus. La présence mondiale seule ne suffit pas à établir un écart de couverture.")}</p>`;
-    $("qualificationDetail").innerHTML +=
-      `<p><strong>Suivi : ${esc(D.followupStatus(r))}</strong><br>${esc(D.missingInfo(r).length ? "Informations à compléter ou préciser : " + D.missingInfo(r).join(" · ") : "Les principaux champs sont renseignés ; cela ne constitue pas une confirmation commerciale.")}</p>`;
+    $("qualificationDetail").innerHTML = `${badge(q.status,q.tone)} ${q.basis ? badge(q.basis) : ""}<p>${esc(q.status === "Cible confirmée" ? `Présence répondant au ciblage : ${q.matched.join(", ")}.` : q.reasons[0] || "Recherche à effectuer.")}</p>${q.reasons.length > 1 ? `<details><summary>Voir les points à vérifier</summary><ul>${q.reasons.slice(1).map(reason=>`<li>${esc(reason)}</li>`).join("")}</ul></details>` : ""}<p class="muted">${esc(op.known ? `Orange accompagne : ${op.covered.join(", ") || "aucun pays renseigné"}. Pays hors couverture renseignée : ${op.open.join(", ") || "aucun écart identifié"}.` : "Pays déjà couverts par Orange à valider avec le commercial avant toute proposition.")}</p>`;
+    const datedRevenue = `${revenue(r)}${r.revenue.year ? ` · ${r.revenue.year}` : " · exercice à préciser"} · ${r.revenue.scope}`;
+    const facts = [
+      ["Secteur d’activité détaillé",r.sector || r.registryActivity],
+      ["Siège de l’entité cliente",r.hq],
+      ["Groupe / siège du groupe",[r.groupName,r.groupHQ].filter(Boolean).join(" · ") || "À préciser"],
+      ["Pays établis par la source actuelle",r.documentedCountries === null ? "À corroborer (informations historiques ci-dessous)" : r.documentedCountries.join(", ") || "Liste de pays à préciser"],
+      ["Implantations propres documentées",r.operationalCountries === null ? "Ventilation par pays à préciser" : r.operationalCountries.join(", ") || "Aucun pays établi dans cette ventilation"],
+      ["Type / périmètre de présence",`${r.presenceType} · ${r.presenceScope}`],
+      ["Nombre de pays et périmètre",r.countryCount],
+      ["Sites / filiales à l’étranger",r.foreignSites],
+      ["CA mondial · année / périmètre",datedRevenue],
+    ];
+    const historicalCountries = r.countries.filter(country => !(r.documentedCountries || []).includes(country));
+    if (historicalCountries.length) facts.push(["Pays historiques / fournis à corroborer", historicalCountries.join(", ")]);
+    $("researchOverview").innerHTML = facts.map(([key,value])=>`<div><dt>${esc(key)}</dt><dd>${esc(value || "À préciser")}</dd></div>`).join("") +
+      `<div><dt>Preuve de présence</dt><dd>${link(r.sources.presence,"Consulter la source") || "Source à établir"}${r.sources.presence ? sub(`Consultée le ${displayDate(r.sourceDates.presence || r.checkedAt)}`) : ""}</dd></div>`;
     const values = c
       ? [
           ["Direction commerciale", c.direction],
@@ -635,20 +647,20 @@
       .slice(0, 10);
     $("legacyDetail").hidden = !r.legacy;
     if (r.legacy) {
-      const old = r.legacy.verification || {},
-        e = r.legacy.enriched || {};
-      $("legacyContent").innerHTML =
-        '<p class="muted">Données reprises du fichier d’origine. L’ancien statut n’est pas une confirmation selon les critères actuels. Les valeurs d’origine restent conservées dans la sauvegarde.</p><div class="legacy-note">' +
-        esc(JSON.stringify(r.legacy, null, 2)) +
-        "</div>" +
-        link(old.source, "Ouvrir la source historique");
-      if (e.aVerifier || old.classification === "PROBABLE")
-        $("legacyContent").innerHTML +=
-          '<p class="muted">Des incertitudes étaient déjà signalées dans le fichier d’origine.</p>';
+      const old = r.legacy.verification || {}, e = r.legacy.enriched || {};
+      const merged = {...old,...e};
+      $("legacyContent").innerHTML = '<p class="muted">Informations originales conservées. Leur ancienne classification ne vaut pas qualification selon le ciblage actuel.</p><dl class="raw-data">' + [
+        ["Secteur",merged.secteurActivite], ["Siège en France (déclaré)",merged.siegeFrance],
+        ["Pays déclarés",[...(merged.paysImplantation?.frontaliers || []),...(merged.paysImplantation?.autre || [])].join(", ")],
+        ["Nombre de pays",merged.nbPaysImplantation], ["Sites / filiales étrangers",merged.nbSitesFilialesEtranger],
+        ["CA mondial déclaré",[merged.caMondial?.montant,merged.caMondial?.annee].filter(v=>v!=null).join(" · ")],
+        ["Justification",[old.justification,e.note].filter(Boolean).join(" — ")]
+      ].filter(([,v])=>v).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("") + "</dl>" + link(old.source,"Source historique");
     }
     $("formError").hidden = true;
     $("suppliedDetail").hidden = !r.contributions.length;
-    const displayValue = (value) => typeof value === "object" ? JSON.stringify(value) : value;
+    const displayValue = (value) => Array.isArray(value) ? value.join(" ; ") :
+      value && typeof value === "object" ? (Object.hasOwn(value,"amount") ? `${money(value.amount,value.currency)} · ${value.year || "année à préciser"} · ${value.scope || "périmètre à préciser"}` : Object.values(value).join(" · ")) : value;
     $("registryDetail").hidden = !r.registeredName;
     $("registryDetail").innerHTML = `<span class="section-kicker">REGISTRE OFFICIEL · CONSTAT DU 13/10/2026</span><dl>${[
       ["Nom enregistré / SIREN", `${r.registeredName} · ${r.siren}`],
@@ -658,16 +670,26 @@
     ].map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl><p class="muted">Le CA des comptes de la société n'est pas assimilé au CA mondial consolidé du groupe. La géographie de ces comptes n'est pas isolée.</p>${r.registryState === "Fermée" ? '<p class="notice error">Entité fermée : vérifier le compte actif successeur. Le siège affiché est le dernier déclaré.</p>' : ""}<p>${esc(r.researchConclusion)}</p><p class="muted">À compléter / vérifier : ${esc(D.missingInfo(r).join(" · ") || "Champs renseignés, preuves à relire")}</p>${r.publishedRevenue ? `<p>CA publié sans exercice établi : ${esc(r.publishedRevenue)}</p>` : ""}`;
     $("suppliedDetail").innerHTML =
       [...r.contributions].sort((a,b) => (a.kind === "documentary" ? 0 : a.kind === "registry" ? 2 : 1) - (b.kind === "documentary" ? 0 : b.kind === "registry" ? 2 : 1)).map((entry) => {
-        const explored = entry.exploredSources || [];
         const isResearch = ["registry", "documentary"].includes(entry.kind);
-        return `<details ${entry.kind === "documentary" ? "open" : ""}><summary>${esc(contributionLabel(entry))}${isResearch ? ` · ${esc(entry.checkedAt)}` : ` · lot ${esc(entry.lot)}, ligne ${esc(entry.line)}`}</summary><p class="muted">${isResearch ? `Sources citées ci-dessous consultées le ${esc(entry.checkedAt)} ; constats limités aux champs décrits dans cette pièce.` : `Reçu le ${esc(entry.receivedOn)}. Date de consultation des sources non fournie ; liens cités par l’utilisateur.`}</p><dl class="raw-data">${Object.entries(entry.originalFields || {}).filter(([key]) => !["line", "siren"].includes(key)).map(([key,value]) => `<div><dt>${esc({name:"Entreprise", hq:"Pays du siège de l’entité", countries:"Pays / couverture déclarés", countriesText:"Pays cités", operationalCountries:"Pays avec implantation propre documentée", sector:"Secteur détaillé", countryCount:"Nombre de pays et périmètre", foreignSites:"Sites / filiales à l’étranger", presenceDetails:"Nature de présence publiée", revenueReported:"CA mondial publié", revenue:"CA daté / devise / périmètre", franceRevenue:"CA France publié", worldEmployees:"Effectifs mondiaux", sourceText:"Sources citées", notes:"Justification"}[key] || key)}</dt><dd>${esc(displayValue(value))}</dd></div>`).join("")}</dl><p>${esc(entry.notes)}</p><p>${(entry.sourceLinks || []).map((source) => link(source.url, source.label)).join(" · ")}</p>${(entry.cautions || []).length ? `<p class="muted">${entry.cautions.map(esc).join("<br>")}</p>` : ""}${explored.length ? `<details><summary>Références explorées (${explored.length}) — rattachement à vérifier</summary><p class="muted">Ces liens sont des pistes de recherche. Une page accessible n'est pas une preuve de son rattachement au client ni d'implantation internationale.</p><ul>${explored.map((source) => `<li>${link(source.url, source.title || source.url)} · ${esc(source.status === "readable" ? "Texte accessible, rattachement à vérifier" : "Indisponible")} ${esc(source.status === "readable" ? "" : source.error || "")}</li>`).join("")}</ul></details>` : ""}</details>`;
+        return `<details ${entry.kind === "documentary" ? "open" : ""}><summary>${esc(contributionLabel(entry))}${isResearch ? ` · ${esc(entry.checkedAt)}` : ` · lot ${esc(entry.lot)}, ligne ${esc(entry.line)}`}</summary><p class="muted">${isResearch ? `Sources citées ci-dessous consultées le ${esc(entry.checkedAt)} ; constats limités aux champs décrits dans cette pièce.` : `Reçu le ${esc(entry.receivedOn)}. Date de consultation des sources non fournie ; liens cités par l’utilisateur.`}</p><dl class="raw-data">${Object.entries(entry.originalFields || {}).filter(([key]) => !["line", "siren", "researchConclusion"].includes(key)).map(([key,value]) => `<div><dt>${esc({name:"Entreprise", hq:"Pays du siège de l’entité", countries:"Pays / couverture déclarés", countriesText:"Pays cités", operationalCountries:"Pays avec implantation propre documentée", sector:"Secteur détaillé", countryCount:"Nombre de pays et périmètre", foreignSites:"Sites / filiales à l’étranger", presenceDetails:"Nature de présence publiée", revenueReported:"CA mondial publié", revenue:"CA daté / devise / périmètre", franceRevenue:"CA France publié", worldEmployees:"Effectifs mondiaux", sourceText:"Sources citées", notes:"Justification", groupName:"Groupe",groupHQ:"Siège du groupe",groupRelation:"Appartenance au groupe",presenceScope:"Périmètre de présence",presenceType:"Nature de présence",documentedCountries:"Pays corroborés",publishedRevenue:"CA sans exercice établi",followup:"Recherche à poursuivre"}[key] || key)}</dt><dd>${esc(displayValue(value))}</dd></div>`).join("")}</dl><p>${esc(entry.notes)}</p><p>${(entry.sourceLinks || []).map((source) => link(source.url, source.label)).join(" · ")}</p>${(entry.cautions || []).length ? `<p class="muted">${entry.cautions.map(esc).join("<br>")}</p>` : ""}</details>`;
       }).join("") +
-      (r.changes.length ? `<details><summary>Différences conservées avec les informations précédentes</summary><div class="legacy-note">${esc(JSON.stringify(r.changes, null, 2))}</div></details>` : "");
-    $("companyDialog").showModal();
+      (r.changes.length ? `<details><summary>Évolutions conservées (${r.changes.length})</summary><p class="muted">Les valeurs précédentes restent dans la sauvegarde JSON et les pièces d’origine.</p></details>` : "");
+    const commercial = $("commercialForm");
+    commercial.elements.namedItem("selected").checked = r.selected;
+    commercial.elements.namedItem("commercialStatus").value = r.commercialStatus;
+    commercial.elements.namedItem("nextActionDate").value = r.nextActionDate;
+    commercial.elements.namedItem("commercialNotes").value = r.commercialNotes;
+    $("commercialBrief").value = commercialBrief(c,r,q,op);
+    $("detailSelectBtn").textContent = r.selected ? "Retirer de ma sélection" : "Ajouter à ma sélection";
+    $("commercialError").hidden = true;
+    $("copyStatus").textContent = "";
+    profileTab(panel);
+    if (!$("companyDialog").open) $("companyDialog").showModal();
   }
   $("tableBody").addEventListener("click", (e) => {
     const b = e.target.closest("[data-company]");
-    if (b) detail(b.dataset.company);
+    if (b) detail(b.dataset.company,b.dataset.sales ? "salesPanel" : "summaryPanel");
+    if (e.target.closest("[data-show-all]")) {$("view").value="all";page=1;render();}
   });
   $("researchForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -752,86 +774,39 @@
       $("formError").hidden = false;
     }
   });
-  $("methodBtn").addEventListener("click", () => {
-    chips("targetCountries", [...D.BORDER, D.OTHER], criteria.targets);
-    const f = $("criteriaForm");
-    f.elements.namedItem("hq").value = criteria.hq;
-    f.elements.namedItem("minRevenue").value = criteria.minRevenue;
-    f.elements.namedItem("operationalOnly").checked = criteria.operationalOnly;
-    f.elements.namedItem("includeGroups").checked = criteria.includeGroups;
-    $("methodDialog").showModal();
-  });
-  $("criteriaForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  async function applyTargeting() {
     const targets = checked("targetCountries");
     if (!targets.length) {
-      notice("Sélectionnez au moins un pays dans les critères.", true);
+      chips("targetCountries", [...D.BORDER,D.OTHER], criteria.targets);
+      notice("Conservez au moins un pays de prospection.", true);
       return;
     }
-    const f = e.target;
-    criteria = {
-      targets,
-      hq: f.elements.namedItem("hq").value,
-      minRevenue: D.number(f.elements.namedItem("minRevenue").value) || 0,
-      operationalOnly: f.elements.namedItem("operationalOnly").checked,
-      includeGroups: f.elements.namedItem("includeGroups").checked,
-    };
-    await persist();
-    render();
-    $("methodDialog").close();
-    notice(
-      "Critères appliqués à toutes les entreprises. Le filtre pays réduit la vue ; les critères définissent la confirmation.",
-    );
-  });
-  for (const b of document.querySelectorAll("[data-close]"))
-    b.addEventListener("click", () => $(b.dataset.close).close());
-  for (const id of [
-    "scope",
-    "status",
-    "analysis",
-    "direction",
-    "segment",
-    "vrc",
-    "sector",
-    "hq",
-    "group",
-    "gap",
-    "countryFilters",
-    "followup",
-    "registryState",
-  ])
-    $(id).addEventListener("change", () => {
-      page = 1;
-      render();
-    });
-  for (const id of ["search", "minRevenue"])
-    $(id).addEventListener("input", () => {
-      page = 1;
-      render();
-    });
-  $("resetFilters").addEventListener("click", () => {
-    for (const id of [
-      "search",
-      "status",
-      "analysis",
-      "direction",
-      "segment",
-      "vrc",
-      "sector",
-      "hq",
-      "group",
-      "minRevenue",
-      "gap",
-      "followup",
-      "registryState",
-    ])
-      $(id).value = "";
-    $("scope").value = Object.keys(clients).length ? "portfolio" : "all";
-    for (const c of $("countryFilters").querySelectorAll("input"))
-      c.checked = false;
+    criteria = {targets, hq:$("hq").value, minRevenue:Math.max(0,D.number($("minRevenue").value) || 0),
+      operationalOnly:$("presenceRule").value === "operational", includeGroups:$("groupRule").value === "include"};
     page = 1;
     render();
+    await persist();
+  }
+  for (const id of ["targetCountries","hq","presenceRule","groupRule"]) $(id).addEventListener("change", applyTargeting);
+  $("minRevenue").addEventListener("input", applyTargeting);
+  for (const id of ["scope","view","direction","segment","vrc","group"]) $(id).addEventListener("change", () => {
+    if (id === "view" && ["unanalysed","selected","due"].includes($("view").value) && Object.keys(clients).length) $("scope").value = "portfolio";
+    page = 1; render();
   });
+  for (const id of ["search","sector"]) $(id).addEventListener("input", () => {page=1;render();});
+  $("metrics").addEventListener("click", e => {
+    const button = e.target.closest("[data-view]");
+    if (button) {$("view").value=button.dataset.view;page=1;render();}
+  });
+  $("resetFilters").addEventListener("click", async () => {
+    for (const id of ["search","direction","segment","vrc","sector","group","minRevenue"]) $(id).value="";
+    criteria={targets:[...D.BORDER],hq:"any",minRevenue:0,operationalOnly:true,includeGroups:true};
+    chips("targetCountries",[...D.BORDER,D.OTHER],criteria.targets);
+    $("hq").value="any"; $("presenceRule").value="operational"; $("groupRule").value="include";
+    $("scope").value=Object.keys(clients).length ? "researchedPortfolio" : "research";
+    $("view").value="targeted";page=1;render();await persist();
+  });
+  for (const button of document.querySelectorAll("[data-close]")) button.addEventListener("click", () => $(button.dataset.close).close());
   $("prevBtn").addEventListener("click", () => {
     page--;
     render();
@@ -868,7 +843,7 @@
           criteria,
           researches: Object.fromEntries(
             dataset()
-              .filter((x) => x.r.analyzed)
+              .filter((x) => x.r.analyzed || x.r.selected || x.r.commercialStatus !== "Non planifié" || x.r.nextActionDate || x.r.commercialNotes)
               .map((x) => [x.id, x.r]),
           ),
         },
@@ -900,7 +875,7 @@
           throw Error("SIREN incohérent dans la sauvegarde.");
         const r = D.validateResearch(value),
           prior = research(id);
-        // Un import externe ne peut pas attester une relecture locale des preuves.
+        // Une sauvegarde externe ne peut pas attester une relecture locale ; les pièces documentaires embarquées restent vérifiables.
         r.reviewed = false;
         r.legacy = prior.legacy || r.legacy;
         r.history = [
@@ -918,7 +893,7 @@
       populate();
       render();
       notice(
-        `${Object.keys(pending).length} analyse(s) importée(s). Les versions précédentes sont conservées dans l’historique. Les preuves doivent être relues avant confirmation. Les critères locaux sont conservés.`,
+        `${Object.keys(pending).length} analyse(s) importée(s). Les versions précédentes sont conservées dans l’historique. Les saisies restent à relire ; les cibles documentaires sont recalculées. Le ciblage local est conservé.`,
       );
     } catch (err) {
       notice(
@@ -932,114 +907,27 @@
     }
   });
   $("exportBtn").addEventListener("click", () => {
-    const headers = [
-      "SIREN",
-      "Entreprise",
-      "Dans portefeuille",
-      "Excel - Direction commerciale",
-      "Excel - MDM HDM SPES",
-      "Excel - Commercial",
-      "Excel - Secteur",
-      "Excel - CA Orange 12 mois EUR",
-      "Recherche - Secteur",
-      "Recherche - Pays du siège entité",
-      "Recherche - Groupe",
-      "Recherche - Pays du siège groupe",
-      "Recherche - Présence mondiale",
-      "Recherche - Périmètre présence",
-      "Recherche - Type présence",
-      "Recherche - CA mondial montant",
-      "Recherche - CA mondial devise",
-      "Recherche - CA mondial exercice",
-      "Recherche - CA mondial périmètre",
-      "Recherche - CA publié historique",
-      "Statut analyse",
-      "Qualification",
-      "Motifs qualification",
-      "Couverture Orange connue",
-      "Pays Orange",
-      "Pays à examiner",
-      "Source présence",
-      "Source siège",
-      "Source groupe",
-      "Source secteur",
-      "Source CA mondial",
-      "Date consultation",
-      "Notes",
-      "Recherche - Nombre de pays et périmètre",
-      "Recherche - Sites ou filiales à l’étranger",
-      "Recherche - Précisions présence",
-      "Recherche - CA France publié",
-      "Recherche - Effectifs mondiaux",
-      "Suivi recherches",
-      "Informations manquantes",
-      "Lots utilisateur",
-      "Liens cités dans les lots",
-      "Registre - Nom déclaré", "Registre - Pays siège", "Registre - État administratif",
-      "Registre - Code NAF", "Registre - Activité déclarée", "Registre - CA société, exercice, périmètre",
-      "Recherche - Pays établis par la source actuelle", "Recherche - Pays avec implantation propre documentée",
-      "Recherche - CA publié sans exercice établi", "Recherche - Dates des preuves par champ",
-    ];
-    const rows = visible.map(({ id, name, c, r, q, op }) => [
-      id,
-      name,
-      c ? "Oui" : "Non",
-      c?.direction,
-      c?.segment,
-      c?.vrc,
-      c?.sector,
-      c?.caOrange,
-      r.sector,
-      r.hq,
-      r.groupName,
-      r.groupHQ,
-      r.countries.join(" | "),
-      r.presenceScope,
-      r.presenceType,
-      r.revenue.amount,
-      r.revenue.currency,
-      r.revenue.year,
-      r.revenue.scope,
-      r.revenue.reported,
-      r.analyzed ? "Analysé" : "Non analysé",
-      q.status,
-      q.reasons.join(" | "),
-      op.known ? "Oui" : "Non",
-      op.covered.join(" | "),
-      op.known ? op.open.join(" | ") : "Couverture inconnue",
-      r.sources.presence,
-      r.sources.hq,
-      r.sources.group,
-      r.sources.sector,
-      r.sources.revenue,
-      r.checkedAt,
-      r.notes,
-      r.countryCount,
-      r.foreignSites,
-      r.presenceDetails,
-      r.franceRevenue,
-      r.worldEmployees,
-      D.followupStatus(r),
-      D.missingInfo(r).join(" | "),
-      r.contributions.map((e) => e.id).join(" | "),
-      r.contributions
-        .flatMap((e) => e.sourceLinks || [])
-        .map((source) => source.url)
-        .join(" | "),
-      r.registeredName, r.registeredCountry, r.registryState, r.registryNAF, r.registryActivity,
-      r.registeredRevenue,
-      r.documentedCountries === null ? "Ventilation inconnue" : r.documentedCountries.join(" | "),
-      r.operationalCountries === null ? "Ventilation inconnue" : r.operationalCountries.join(" | "),
-      r.publishedRevenue, JSON.stringify(r.sourceDates),
-    ]);
-    download(
-      "\ufeff" +
-        [headers, ...rows]
-          .map((row) => row.map(D.csvCell).join(";"))
-          .join("\r\n"),
-      "degse-opportunites-" + new Date().toISOString().slice(0, 10) + ".csv",
-      "text/csv;charset=utf-8",
-    );
+    const headers = ["SIREN","Entreprise","Excel - Direction commerciale","Excel - MDM HDM SPES","Excel - Commercial",
+      "Excel - Secteur","Excel - CA Orange 12 mois EUR","Recherche - Secteur détaillé","Recherche - Siège entité",
+      "Recherche - Groupe","Recherche - Siège groupe","Recherche - Pays renseignés","Recherche - Pays corroborés",
+      "Recherche - Pays avec implantation propre","Recherche - Type présence","Recherche - Périmètre présence",
+      "Recherche - Nombre de pays et périmètre","Recherche - Sites ou filiales à l’étranger","Recherche - CA mondial montant",
+      "Recherche - CA mondial devise","Recherche - CA mondial exercice","Recherche - CA mondial périmètre",
+      "Recherche - CA publié historique","Registre - CA comptes de la société, périmètre distinct","Qualification",
+      "Qualification - Pays répondant aux critères","Qualification - Origine","Source présence","Source lien au groupe",
+      "Date consultation présence","Couverture Orange renseignée","Pays hors couverture renseignée","Prospection - Sélection",
+      "Prospection - Avancement","Prospection - Prochaine action","Prospection - Notes"];
+    const rows = visible.map(({id,name,c,r,q,op})=>[id,name,c?.direction,c?.segment,c?.vrc,c?.sector,c?.caOrange,
+      r.sector,r.hq,r.groupName,r.groupHQ,r.countries.join(" | "),
+      r.documentedCountries === null ? "À corroborer" : r.documentedCountries.join(" | "),
+      r.operationalCountries === null ? "Ventilation à préciser" : r.operationalCountries.join(" | "),
+      r.presenceType,r.presenceScope,r.countryCount,r.foreignSites,r.revenue.amount,r.revenue.currency,r.revenue.year,
+      r.revenue.scope,r.revenue.reported || r.publishedRevenue,r.registeredRevenue,q.status,q.matched.join(" | "),q.basis,
+      r.sources.presence,r.sources.group,r.sources.presence ? (r.sourceDates.presence || r.checkedAt) : "",
+      op.known ? op.covered.join(" | ") : "À valider",op.known ? op.open.join(" | ") : "À valider",
+      r.selected ? "Oui" : "Non",r.commercialStatus,r.nextActionDate,r.commercialNotes]);
+    download("\ufeff"+[headers,...rows].map(row=>row.map(D.csvCell).join(";")).join("\r\n"),
+      `degse-prospection-${todayParis()}.csv`,"text/csv;charset=utf-8");
   });
   populate();
   render();
