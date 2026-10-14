@@ -34,6 +34,25 @@ Le **CA Orange sur 12 mois** vient d’Excel. Le **CA mondial** provient de la r
 
 La couverture Orange vient d’une colonne Excel explicite, ou, à défaut, d’une référence commerciale renseignée dans la fiche. Les pays de présence hors couverture connue sont des **pistes à valider**, pas des contrats ou des opportunités de revenu démontrées. Si la couverture est inconnue, aucun écart n’est inventé.
 
+## Préparer la prospection
+
+La fiche **Synthèse & sources** contient une **matrice par pays** : présence issue des recherches, couverture Orange déclarée et prochaine vérification. Les implantations propres, les présences historiques à corroborer et les pays connus uniquement par la couverture commerciale restent distincts. Une présence non établie ne signifie pas une absence d’implantation. Une couverture inconnue ne devient jamais une absence de contrat. Les cinq pays sélectionnables sont nommés ; pour « International — Autre », seuls les pays effectivement renseignés sont affichés. Le bouton sous la matrice conduit directement à la saisie de la couverture. L’Excel reste prioritaire lorsqu’il fournit cette couverture.
+
+Le tableau est **trié par priorité de contact** par défaut ; l’en-tête « Priorité / suivi commercial » permet d’inverser le tri. Chaque priorité affiche sa justification, développée dans la fiche :
+
+- **Contact à préparer** : cible documentaire, preuves nécessaires récentes et au moins un pays ciblé hors couverture déclarée. Le besoin et le contrat restent à vérifier.
+- **Couverture à valider** : cible documentaire avec preuves nécessaires récentes, mais couverture Orange inconnue. Un échange avec le commercial est pertinent.
+- **Informations à actualiser** : la cible satisfait les critères documentaires mais une preuve nécessaire au ciblage est ancienne ou sans actualité établie.
+- **Dossier à compléter** : présence ou critères documentaires encore à établir.
+- **Pas d’écart ciblé** : les pays répondant aux critères sont tous dans la couverture déclarée ; cela n’exclut pas d’autres besoins.
+- Les comptes **hors ciblage**, **écartés commercialement** ou **fermés au registre** sont distingués et placés après les dossiers à préparer.
+
+À niveau identique, une action échue remonte avant les comptes sans échéance. Aucun score de revenu potentiel n’est inventé ; un CA absent ou ancien ne bloque pas le contact quand aucun seuil de CA n’est activé. La priorité suit les pays et critères courants. Elle est distincte de l’avancement commercial saisi et ne modifie pas le statut documentaire.
+
+Le volet **Actualité des informations** suit séparément présence, siège, secteur, CA mondial et lien au groupe lorsque pertinent. Il indique les champs manquants, les sources sans date, les consultations de **plus de 365 jours** et les exercices de CA **antérieurs à l’année courante moins deux**. Ces seuils servent de repères internes pour la relecture ; une consultation récente n’atteste pas à elle seule la véracité d’un fait. La date du registre ne rafraîchit pas les autres preuves. Le CA mondial et les données de groupe restent distincts des chiffres Excel.
+
+La synthèse commerciale à copier et le CSV incluent la **priorité, sa justification et les alertes**. Le CSV précise également les pays ciblés hors couverture déclarée et l’origine de cette couverture. Les indicateurs sont recalculés à partir des recherches et du portefeuille de la session ; ils n’écrasent ni les analyses sauvegardées ni les données sources.
+
 ## Données et périmètre
 
 Les **721 SIREN historiques** sont repris du HTML fourni, avec les deux jeux de recherches et la liste d’anciens classements. Les anciennes mentions « CONFIRMÉ » sont archivées, sans être reconduites comme confirmations actuelles. Les URL anciennes restent disponibles, mais ne sont pas affectées arbitrairement comme preuve de chaque champ. Les archives restent inchangées. Les nouvelles vérifications Internet sont conservées séparément et ne revalident pas automatiquement tous les anciens champs.

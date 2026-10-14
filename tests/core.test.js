@@ -503,3 +503,62 @@ test('Suivi commercial séparé des faits, sauvegardes antérieures compatibles 
   assert.throws(()=>D.validateResearch({...r,commercialStatus:'Valeur inconnue'}),/Suivi commercial/);
   assert.throws(()=>D.validateResearch({...r,nextActionDate:'2026-02-30'}),/prochaine action/);
 });
+
+test('Matrice pays : une couverture inconnue ne devient pas une absence et les anciennes mentions restent à corroborer', () => {
+  const r=researched();r.countries=['Italie','Chine','Belgique'];r.documentedCountries=['Italie','Chine'];r.operationalCountries=['Italie','Chine'];
+  const matrix=D.coverageMatrix(null,r,criteria);
+  assert.equal(matrix.find(x=>x.country==='Italie').coverage,'Inconnue');
+  assert.equal(matrix.find(x=>x.country==='Italie').action,'Valider la couverture Orange');
+  assert.equal(matrix.find(x=>x.country==='Belgique').presence,'Présence à corroborer');
+  assert.equal(matrix.find(x=>x.country==='Allemagne').presence,'Présence non établie');
+  assert.equal(matrix.find(x=>x.country==='Chine').targeted,false);
+  const covered=D.coverageMatrix({coverageKnown:true,coverage:['Italie','Chine']},r,criteria);
+  assert.equal(covered.find(x=>x.country==='Italie').action,'Pas d’écart déclaré');
+  assert.equal(D.coverageMatrix(null,r,{...criteria,targets:[D.OTHER]}).find(x=>x.country==='Chine').targeted,true);
+});
+test('Matrice : distribution, filiales et pays connus seulement dans la couverture restent distincts', () => {
+  const r=researched();r.presenceType='Mixte';r.countries=['Italie','Belgique'];r.documentedCountries=['Italie','Belgique'];r.operationalCountries=['Italie'];
+  const matrix=D.coverageMatrix({coverageKnown:true,coverage:['Chine']},r,criteria);
+  assert.equal(matrix.find(x=>x.country==='Italie').action,'Piste d’extension à valider');
+  assert.equal(matrix.find(x=>x.country==='Belgique').eligible,false);
+  assert.equal(matrix.find(x=>x.country==='Belgique').presence,'Présence documentée · Mixte');
+  assert.equal(matrix.find(x=>x.country==='Chine').presence,'Présence non établie');
+  assert.equal(matrix.find(x=>x.country==='Chine').coverage,'Couvert (déclaré)');
+});
+test('Priorité : la présence ciblée et la couverture connue guident la préparation sans fabriquer de score ou de contrat', () => {
+  const r=researched(),today='2026-10-14';
+  assert.equal(D.contactPriority(null,r,criteria,today).label,'Couverture à valider');
+  const c={coverageKnown:true,coverage:['Chine']};
+  const priority=D.contactPriority(c,r,criteria,today);
+  assert.equal(priority.label,'Contact à préparer');assert.deepEqual(priority.openTargets,['Italie']);
+  assert.match(priority.reasons[0],/Besoin et contrat à vérifier/);
+  assert.equal(D.contactPriority({...c,coverage:['Italie']},r,criteria,today).label,'Pas d’écart ciblé');
+  r.coverage={known:true,countries:['Italie'],source:'CRM'};
+  assert.equal(D.contactPriority(c,r,criteria,today).label,'Contact à préparer'); // Excel prioritaire.
+  r.nextActionDate='2026-10-13';assert.ok(D.contactPriority(c,r,criteria,today).rank<priority.rank);
+  r.commercialStatus='À écarter';assert.equal(D.contactPriority(c,r,criteria,today).label,'Compte écarté');
+  r.registryState='Fermée';assert.equal(D.contactPriority(c,r,criteria,today).label,'Entité fermée');
+});
+test('Actualité : chaque champ conserve sa propre date ; source absente, date future et exercice ancien sont signalés', () => {
+  const r=researched();r.checkedAt='2026-10-13';r.sourceDates.presence='2024-01-01';
+  r.revenue={amount:100,currency:'EUR',year:'2023',scope:'Entreprise',reported:''};r.sources.revenue='https://example.com/report';
+  let health=D.sourceHealth(r,'2026-10-14');
+  assert.equal(health.find(x=>x.field==='presence').state,'stale');
+  assert.equal(health.find(x=>x.field==='revenue').state,'stale');
+  assert.match(health.find(x=>x.field==='revenue').reason,/Exercice/);
+  assert.equal(health.find(x=>x.field==='hq').state,'missing');
+  r.sourceDates.presence='';assert.equal(D.sourceHealth(r,'2026-10-14').find(x=>x.field==='presence').state,'undated');
+  r.sourceDates.presence='2026-10-15';assert.equal(D.sourceHealth(r,'2026-10-14').find(x=>x.field==='presence').state,'undated');
+  r.sourceDates.presence='2025-10-14';assert.equal(D.sourceHealth(r,'2026-10-14').find(x=>x.field==='presence').state,'current');
+});
+test('Priorité : une preuve ancienne appelle une actualisation sans déqualifier automatiquement la cible ni bloquer sur un CA facultatif', () => {
+  const r=researched();r.checkedAt='2024-01-01';
+  assert.equal(D.qualify(r,criteria).status,'Cible confirmée');
+  assert.equal(D.contactPriority(null,r,criteria,'2026-10-14').label,'Informations à actualiser');
+  r.checkedAt='2026-10-13';
+  assert.equal(D.sourceHealth(r,'2026-10-14').find(x=>x.field==='revenue').state,'missing');
+  assert.equal(D.contactPriority(null,r,criteria,'2026-10-14').label,'Couverture à valider');
+  r.reviewed=false;assert.equal(D.contactPriority(null,r,criteria,'2026-10-14').label,'Dossier à compléter');
+  assert.deepEqual(D.contactPriority({coverageKnown:true,coverage:['Chine']},r,criteria,'2026-10-14').openTargets,[]);
+  r.reviewed=true;r.countries=['Chine'];assert.equal(D.contactPriority(null,r,criteria,'2026-10-14').label,'Hors ciblage');
+});

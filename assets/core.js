@@ -788,6 +788,84 @@
       source: c?.coverageKnown ? "Excel" : r?.coverage?.source || "",
     };
   }
+  // Indicateurs d’aide à la prospection, recalculés sans modifier la qualification.
+  function sourceHealth(r, today = new Date().toISOString().slice(0, 10)) {
+    const fields = [
+      ["presence", "Présence internationale", !!(r.documentedCountries ?? r.countries).length || r.noSignal],
+      ["hq", "Siège de l’entité", !!r.hq],
+      ["sector", "Secteur d’activité", !!(r.sector || r.registryActivity)],
+      ["revenue", "CA mondial", r.revenue.amount !== null || !!(r.revenue.reported || r.publishedRevenue)],
+    ];
+    if (r.groupRelation === "Oui" || r.presenceScope === "Groupe" || r.groupName)
+      fields.push(["group", "Lien au groupe", r.groupRelation === "Oui" && !!r.groupName]);
+    return fields.map(([field, label, valueKnown]) => {
+      const source = safeURL(r.sources?.[field]);
+      const date = Object.hasOwn(r.sourceDates || {}, field) ? r.sourceDates[field] : r.checkedAt;
+      const dateOK = /^\d{4}-\d{2}-\d{2}$/.test(date || "") &&
+        !Number.isNaN(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date && date <= today;
+      const age = dateOK ? Math.floor((Date.parse(today) - Date.parse(date)) / 86400000) : null;
+      let state = "current", reason = "Source consultée au cours des 365 derniers jours.";
+      if (!valueKnown || !source) {
+        state = "missing";
+        reason = !valueKnown ? "Information à renseigner." : "Source de cette information à renseigner.";
+      } else if (!dateOK) {
+        state = "undated"; reason = "Date de consultation à préciser.";
+      } else if (age > 365) {
+        state = "stale"; reason = "Source consultée il y a plus d’un an : vérifier que le fait reste actuel.";
+      }
+      if (field === "revenue" && valueKnown && state === "current") {
+        const year = /^\d{4}$/.test(r.revenue.year) ? Number(r.revenue.year) : 0;
+        if (!year || year > Number(today.slice(0, 4))) {
+          state = "undated"; reason = "Exercice du CA mondial à préciser.";
+        } else if (year < Number(today.slice(0, 4)) - 2) {
+          state = "stale"; reason = "Exercice du CA mondial ancien : rechercher un exercice plus récent.";
+        }
+      }
+      return {field, label, state, reason, date: dateOK ? date : "", source};
+    });
+  }
+  function coverageMatrix(c, r, criteria, q = qualify(r, criteria)) {
+    const op = opportunities(c, r), countries = unique([
+      ...criteria.targets.filter(p => p !== OTHER), ...r.countries,
+      ...(r.documentedCountries || []), ...(r.operationalCountries || []), ...(op.known ? op.covered : []),
+    ]).filter(knownCountry).sort((a,b) => {
+      const targeted = p => p !== "France" && criteria.targets.includes(BORDER.includes(p) ? p : OTHER);
+      return Number(targeted(b)) - Number(targeted(a)) || a.localeCompare(b,"fr");
+    });
+    const validated = (r.reviewed || documentaryProof(r,"presence")) && proof(r,"presence");
+    return countries.map(country => {
+      const targeted = country !== "France" && criteria.targets.includes(BORDER.includes(country) ? country : OTHER);
+      const listed = (r.documentedCountries ?? r.countries).includes(country);
+      const historical = r.countries.includes(country) && !listed;
+      const own = r.operationalCountries !== null ? r.operationalCountries.includes(country) : r.presenceType === "Implantation" && listed;
+      const presence = listed && validated ? (own ? "Implantation propre documentée" : "Présence documentée · " + r.presenceType)
+        : listed || historical ? "Présence à corroborer" : "Présence non établie";
+      const covered = op.known && op.covered.includes(country);
+      const eligible = q.status === "Cible confirmée" && q.matched.includes(country);
+      const action = !targeted ? "Hors ciblage" : !eligible ? "Présence / critères à valider"
+        : !op.known ? "Valider la couverture Orange" : covered ? "Pas d’écart déclaré" : "Piste d’extension à valider";
+      return {country, targeted, presence, eligible, coverage: !op.known ? "Inconnue" : covered ? "Couvert (déclaré)" : "Absent de la liste renseignée", action};
+    });
+  }
+  function contactPriority(c, r, criteria, today = new Date().toISOString().slice(0, 10), q = qualify(r, criteria), health = sourceHealth(r, today)) {
+    const op = opportunities(c, r), openTargets = op.known && q.status === "Cible confirmée" ? q.matched.filter(p => !op.covered.includes(p)) : [];
+    const result = (label, rank, tone, reasons) => ({label, rank, tone, reasons, openTargets});
+    if (r.registryState === "Fermée") return result("Entité fermée", 9, "neutral", ["Vérifier le compte actif successeur avant toute prospection."]);
+    if (r.commercialStatus === "À écarter") return result("Compte écarté", 8, "neutral", ["Le suivi commercial indique de ne pas poursuivre ce compte."]);
+    if (q.status === "Hors critères") return result("Hors ciblage", 7, "neutral", q.reasons);
+    if (q.status !== "Cible confirmée") return result("Dossier à compléter", 4, "warning", q.reasons);
+    const critical = ["presence", ...(r.presenceScope === "Groupe" ? ["group"] : []),
+      ...(criteria.hq !== "any" ? ["hq"] : []), ...(criteria.minRevenue > 0 ? ["revenue"] : [])];
+    const stale = health.filter(x => critical.includes(x.field) && x.state !== "current");
+    if (stale.length) return result("Informations à actualiser", 3, "warning", stale.map(x => `${x.label} : ${x.reason}`));
+    const due = r.nextActionDate && r.nextActionDate <= today;
+    const schedule = due ? ["Prochaine action arrivée à échéance."] : [];
+    if (!op.known) return result("Couverture à valider", due ? .5 : 1, "warning",
+      [...schedule, "Présence ciblée documentée ; pays déjà accompagnés par Orange inconnus. Un échange avec le commercial est pertinent."]);
+    if (openTargets.length) return result("Contact à préparer", due ? -.5 : 0, "success",
+      [...schedule, `${openTargets.join(", ")} : présence ciblée documentée, hors liste de couverture Orange renseignée (${op.source}). Besoin et contrat à vérifier.`]);
+    return result("Pas d’écart ciblé", 5, "neutral", [...schedule, "Tous les pays répondant au ciblage figurent dans la couverture Orange déclarée. D’autres besoins peuvent exister."]);
+  }
   function validateResearch(raw) {
     if (
       !raw ||
@@ -937,6 +1015,9 @@
     importSheets,
     qualify,
     opportunities,
+    sourceHealth,
+    coverageMatrix,
+    contactPriority,
     proof,
     documentaryProof,
     validDate,

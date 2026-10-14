@@ -62,7 +62,7 @@
     fileName = "",
     page = 1,
     activeId = "",
-    sort = { key: "status", dir: 1 },
+    sort = { key: "priority", dir: 1 },
     visible = [];
   let criteria = {
     targets: [...D.BORDER],
@@ -153,6 +153,7 @@
     return original;
   }
   function dataset() {
+    const today = todayParis();
     return D.unique([
       ...Object.keys(clients),
       ...Object.keys(base),
@@ -160,12 +161,15 @@
     ]).map((id) => {
       const c = clients[id] || null,
         r = research(id),
-        q = D.qualify(r, criteria);
+        q = D.qualify(r, criteria),
+        health = D.sourceHealth(r, today);
       return {
         id,
         c,
         r,
         q,
+        health,
+        priority: D.contactPriority(c, r, criteria, today, q, health),
         name: c?.name || r.name || `Entreprise · ${id}`,
         op: D.opportunities(c, r),
       };
@@ -216,9 +220,9 @@
   }
   const todayParis = () => new Intl.DateTimeFormat("fr-CA", {timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const actionDue = r => !!r.nextActionDate && r.nextActionDate <= todayParis() && r.commercialStatus !== "À écarter";
-  function filtered(ignoreView = false) {
+  function filtered(ignoreView = false, rows = dataset()) {
     const query = D.norm($("search").value), activity = D.norm($("sector").value);
-    return dataset().filter(({c,r,q,name,id}) => {
+    return rows.filter(({c,r,q,name,id}) => {
       const scope = $("scope").value;
       if ((scope === "portfolio" && !c) || (scope === "researchedPortfolio" && (!c || !r.analyzed)) ||
           (scope === "research" && !r.analyzed && !r.selected && r.commercialStatus === "Non planifié" && !r.nextActionDate && !r.commercialNotes)) return false;
@@ -255,6 +259,7 @@
       direction: x.c?.direction,
       vrc: x.c?.vrc,
       caOrange: x.c?.caOrange,
+      priority: x.priority.rank,
       revenue:
         x.r.revenue.amount !== null && x.r.revenue.currency === "EUR"
           ? x.r.revenue.amount
@@ -263,7 +268,8 @@
     }[key];
   }
   function render() {
-    visible = filtered().sort((a, b) => {
+    const rows = dataset();
+    visible = filtered(false, rows).sort((a, b) => {
       const av = sortValue(a, sort.key),
         bv = sortValue(b, sort.key);
       if (av == null || av === "") return bv == null || bv === "" ? 0 : 1;
@@ -272,12 +278,12 @@
         (typeof av === "number"
           ? av - bv
           : String(av).localeCompare(String(bv), "fr", { numeric: true })) *
-        sort.dir
+        sort.dir || a.name.localeCompare(b.name, "fr")
       );
     });
     const pages = Math.max(1, Math.ceil(visible.length / 40));
     page = Math.min(page, pages);
-    const contextRows = filtered(true), selected = contextRows.filter(x => x.r.selected).length;
+    const contextRows = filtered(true, rows), selected = contextRows.filter(x => x.r.selected).length;
     $("metrics").innerHTML = [
       {n:contextRows.length, label:"Comptes dans le périmètre", note:"Fichier et filtres commerciaux", view:"all"},
       {n:contextRows.filter(x=>x.q.status === "Cible confirmée").length, label:"Cibles confirmées", note:"Présence ciblée documentée", view:"confirmed", tone:"success"},
@@ -285,6 +291,8 @@
       {n:selected, label:"Ma sélection", note:"Comptes retenus pour la prospection", view:"selected"},
     ].map(x=>`<button class="metric ${x.tone || ""} ${$("view").value === x.view ? "active" : ""}" data-view="${x.view}" aria-label="Afficher ${esc(x.label)}"><span class="metric-label">${x.label}</span><strong>${x.n.toLocaleString("fr-FR")}</strong><span class="metric-note">${x.note}</span></button>`).join("");
     $("resultCount").textContent = `${visible.length.toLocaleString("fr-FR")} compte(s) · ${$("view").selectedOptions[0].textContent}`;
+    const countPriority = label => visible.filter(x => x.priority.label === label).length.toLocaleString("fr-FR");
+    $("prospectingSummary").textContent = `Dans cette vue : ${countPriority("Contact à préparer")} contact(s) à préparer · ${countPriority("Couverture à valider")} couverture(s) Orange à valider · ${countPriority("Informations à actualiser")} dossier(s) à actualiser. Priorité fondée sur la présence ciblée, la couverture déclarée et l’actualité des preuves.`;
     const active = [criteria.targets.join(", "), criteria.operationalOnly ? "Implantations propres" : "Présence commerciale incluse",
       ...["direction", "segment", "vrc", "group"].filter(id => $(id).value).map(id => $(id).selectedOptions[0].textContent),
       ...(criteria.hq !== "any" ? [criteria.hq === "France" ? "Siège français" : "Siège hors France"] : []),
@@ -294,15 +302,15 @@
     $("activeFilters").textContent = active.join(" · ");
     $("selectViewBtn").disabled = !visible.length;
     $("selectViewBtn").textContent = visible.length && visible.every(x=>x.r.selected) ? "Retirer cette vue de ma sélection" : "Sélectionner cette vue";
-    $("tableBody").innerHTML = visible.slice((page - 1) * 40, page * 40).map(({id,c,r,q,name}) => {
+    $("tableBody").innerHTML = visible.slice((page - 1) * 40, page * 40).map(({id,c,r,q,name,priority}) => {
       const knownCountries = r.documentedCountries ?? r.countries;
       const countryLabels = knownCountries.slice(0,3).map(country => `<span class="country-label">${esc(country)}</span>`).join("") +
         (knownCountries.length > 3 ? `<span class="country-label">+${knownCountries.length - 3}</span>` : "");
       const activity = r.sector || r.registryActivity || D.UNKNOWN;
       const statusNote = q.status === "Cible confirmée" ? q.matched.join(", ") : q.reasons[0] || "";
       const groupInfo = r.groupName ? `${r.groupName} · ${r.groupHQ || "siège à préciser"}` : "Groupe à préciser";
-      const action = r.commercialStatus === "Non planifié" ? (q.status === "Cible confirmée" ? "Contact à préparer" : "Non planifié") : r.commercialStatus;
-      return `<tr class="${r.selected ? "is-selected" : ""}"><td class="selection-col"><input type="checkbox" data-select="${id}" aria-label="Sélectionner ${esc(name)}" ${r.selected ? "checked" : ""}></td><td><button class="company-link" data-company="${id}">${esc(name)}</button>${sub(id)}${r.registryState === "Fermée" ? badge("Entité fermée", "warning") : c?.duplicate ? badge("Doublon Excel", "warning") : ""}</td><td>${esc(c?.vrc || "—")}${sub([c?.direction, c?.segment].filter(Boolean).join(" · ") || "Excel non renseigné")}</td><td>${esc(c ? money(c.caOrange) : "—")}${sub("Relation Orange")}</td><td><span class="clamp" title="${esc(activity)}">${esc(activity)}</span><div class="country-list">${countryLabels || sub("Pays à préciser")}</div>${sub(r.presenceScope === "Inconnu" ? "Périmètre à préciser" : `${r.presenceScope} · ${r.presenceType}`)}${knownCountries.length && !D.documentaryProof(r,"presence") && !r.reviewed ? sub("Présence historique / fournie à vérifier") : ""}</td><td>${esc(r.hq || "À préciser")}${sub(groupInfo)}</td><td><span class="clamp" title="${esc(revenue(r))}">${esc(revenue(r))}</span>${sub(`${r.revenue.year || "Exercice à préciser"} · ${(r.revenue.scope === "Inconnu" ? "périmètre à préciser" : r.revenue.scope)}`)}${(r.revenue.amount !== null || r.revenue.reported || r.publishedRevenue) && !D.proof(r,"revenue") ? sub("Montant historique / fourni à vérifier") : ""}</td><td>${badge(q.status, q.tone)}<span class="sub clamp" title="${esc(statusNote)}">${esc(statusNote)}</span>${q.basis ? sub(q.basis) : ""}</td><td>${esc(action)}${r.nextActionDate ? sub(`${actionDue(r) ? "Relance à faire" : "Prochaine action"} : ${displayDate(r.nextActionDate)}`) : ""}<button class="row-action" data-company="${id}" data-sales="true">Ouvrir le suivi →</button></td></tr>`;
+      const action = r.commercialStatus;
+      return `<tr class="${r.selected ? "is-selected" : ""}"><td class="selection-col"><input type="checkbox" data-select="${id}" aria-label="Sélectionner ${esc(name)}" ${r.selected ? "checked" : ""}></td><td><button class="company-link" data-company="${id}">${esc(name)}</button>${sub(id)}${r.registryState === "Fermée" ? badge("Entité fermée", "warning") : c?.duplicate ? badge("Doublon Excel", "warning") : ""}</td><td>${esc(c?.vrc || "—")}${sub([c?.direction, c?.segment].filter(Boolean).join(" · ") || "Excel non renseigné")}</td><td>${esc(c ? money(c.caOrange) : "—")}${sub("Relation Orange")}</td><td><span class="clamp" title="${esc(activity)}">${esc(activity)}</span><div class="country-list">${countryLabels || sub("Pays à préciser")}</div>${sub(r.presenceScope === "Inconnu" ? "Périmètre à préciser" : `${r.presenceScope} · ${r.presenceType}`)}${knownCountries.length && !D.documentaryProof(r,"presence") && !r.reviewed ? sub("Présence historique / fournie à vérifier") : ""}</td><td>${esc(r.hq || "À préciser")}${sub(groupInfo)}</td><td><span class="clamp" title="${esc(revenue(r))}">${esc(revenue(r))}</span>${sub(`${r.revenue.year || "Exercice à préciser"} · ${(r.revenue.scope === "Inconnu" ? "périmètre à préciser" : r.revenue.scope)}`)}${(r.revenue.amount !== null || r.revenue.reported || r.publishedRevenue) && !D.proof(r,"revenue") ? sub("Montant historique / fourni à vérifier") : ""}</td><td>${badge(q.status, q.tone)}<span class="sub clamp" title="${esc(statusNote)}">${esc(statusNote)}</span>${q.basis ? sub(q.basis) : ""}</td><td>${badge(priority.label,priority.tone)}<span class="sub clamp" title="${esc(priority.reasons.join(" "))}">${esc(priority.reasons[0] || "")}</span>${sub(action)}${r.nextActionDate ? sub(`${actionDue(r) ? "Relance à faire" : "Prochaine action"} : ${displayDate(r.nextActionDate)}`) : ""}<button class="row-action" data-company="${id}" data-sales="true">Ouvrir le suivi →</button></td></tr>`;
     }).join("") || '<tr><td colspan="9" class="empty">Aucun compte dans cette vue. <button class="text-button" data-show-all>Voir toutes les entreprises</button> ou réinitialisez le ciblage.</td></tr>';
     $("pageMeta").textContent =
       `Page ${page} / ${pages} · 40 entreprises par page`;
@@ -341,9 +349,11 @@
     });
   }
   function commercialBrief(c,r,q,op) {
+    const health = D.sourceHealth(r,todayParis()), priority = D.contactPriority(c,r,criteria,todayParis(),q,health);
     return [c?.name || r.name || `Entreprise ${r.siren}`,`SIREN : ${r.siren}`,
       `Commercial / portefeuille : ${[c?.vrc,c?.direction,c?.segment].filter(Boolean).join(" · ") || "À renseigner dans l’Excel"}`,
       `Qualification documentaire : ${q.status}${q.basis ? " — "+q.basis : ""}`,
+      `Priorité de contact : ${priority.label}. ${priority.reasons.join(" ")}`,
       `Pays répondant au ciblage : ${q.matched.join(", ") || "Aucun pays établi selon les critères"}`,
       `Présence : ${r.presenceType} · ${r.presenceScope}`,
       `Secteur : ${r.sector || r.registryActivity || "À préciser"}`,
@@ -353,6 +363,7 @@
       op.known ? `Pays déjà couverts par Orange : ${op.covered.join(", ") || "aucun pays renseigné"}.` : "",
       op.known ? `Pays hors couverture Orange renseignée : ${op.open.join(", ") || "Aucun écart identifié"}. Couverture fournie par ${op.source}.` : "Couverture Orange : à valider avec le commercial.",
       `Preuve de présence : ${r.sources.presence || "À établir"}`,
+      `Actualité des informations : ${health.filter(x=>x.state !== "current").map(x=>x.label+" — "+x.reason).join(" ; ") || "Toutes les sources suivies ont une consultation récente."}`,
       `Suivi : ${r.commercialStatus}${r.nextActionDate ? " · prochaine action "+displayDate(r.nextActionDate) : ""}`,
       r.commercialNotes ? `Notes commerciales : ${r.commercialNotes}` : "",
       "Questions pour le contact : quels pays sont déjà accompagnés par Orange ? Quels besoins de connectivité ou de sécurité existent dans les autres implantations ? Qui pilote ces sujets ?",
@@ -535,6 +546,13 @@
       r = research(id),
       q = D.qualify(r, criteria),
       op = D.opportunities(c, r);
+    const health = D.sourceHealth(r,todayParis()), priority = D.contactPriority(c,r,criteria,todayParis(),q,health);
+    const matrix = D.coverageMatrix(c,r,criteria,q);
+    $("prospectingDetail").innerHTML = `<div class="priority-heading"><h3>Priorité de contact</h3>${badge(priority.label,priority.tone)}</div><ul class="priority-reasons">${priority.reasons.map(reason=>`<li>${esc(reason)}</li>`).join("")}</ul><h3>Implantations et couverture Orange par pays</h3><p class="muted">${esc(op.known ? `Couverture déclarée : ${op.source}. Une absence dans cette liste est une piste à valider avec le commercial.` : "La couverture Orange est inconnue : aucun pays n’est considéré comme non couvert.")} Les listes de présence peuvent être partielles ; « non établie » ne signifie pas absence d’implantation.</p><p class="muted">Périmètre des recherches : ${esc(r.presenceScope)} · ${esc(r.presenceType)}.${r.sources.presence ? ` ${link(r.sources.presence,"Source de présence")}` : ""}</p><div class="country-matrix-scroll" tabindex="0" aria-label="Matrice des implantations et de la couverture Orange"><table class="country-matrix"><caption class="visually-hidden">Présence documentée ou à corroborer, couverture Orange et prochaine vérification par pays</caption><thead><tr><th scope="col">Pays / ciblage</th><th scope="col">Recherche · présence</th><th scope="col">Commercial · Orange</th><th scope="col">Prochaine vérification</th></tr></thead><tbody>${matrix.map(row=>`<tr><th scope="row">${esc(row.country)}${sub(row.targeted ? "Pays ciblé" : "Hors ciblage")}</th><td>${esc(row.presence)}</td><td>${esc(row.coverage)}</td><td>${esc(row.action)}</td></tr>`).join("") || '<tr><td colspan="4">Aucun pays nommé disponible. Préciser les implantations pour analyser les pistes internationales.</td></tr>'}</tbody></table></div><button type="button" class="text-button" id="editCoverageBtn">Renseigner ou vérifier la couverture Orange</button>`;
+    const healthLabels = {current:"Source récente",missing:"À compléter",undated:"Date à préciser",stale:"À actualiser"};
+    const alerts = health.filter(x=>x.state !== "current");
+    $("healthSummary").textContent = `Actualité des informations · ${alerts.length ? alerts.length + " point(s) à vérifier" : "sources récentes"}`;
+    $("healthDetails").innerHTML = `<dl class="health-grid">${health.map(x=>`<div><dt>${esc(x.label)} · ${badge(healthLabels[x.state],x.state === "current" ? "success" : "warning")}</dt><dd>${esc(x.reason)}${x.date ? sub("Consultation : "+displayDate(x.date)) : ""}${x.field === "revenue" && r.revenue.year ? sub("Exercice : "+r.revenue.year) : ""}${x.source ? link(x.source,"Consulter la source") : ""}</dd></div>`).join("")}</dl>`;
     $("detailName").textContent = c?.name || r.name || `Entreprise · ${id}`;
     $("detailIdentity").textContent =
       `SIREN ${id} · ${c ? "Dans le portefeuille importé" : "Hors portefeuille importé"}`;
@@ -698,6 +716,12 @@
     profileTab(panel);
     if (!$("companyDialog").open) $("companyDialog").showModal();
   }
+  $("prospectingDetail").addEventListener("click", e => {
+    if (e.target.closest("#editCoverageBtn")) {
+      profileTab("editPanel");
+      $("researchForm").elements.namedItem("coverageCountries").focus();
+    }
+  });
   $("tableBody").addEventListener("click", (e) => {
     const b = e.target.closest("[data-company]");
     if (b) detail(b.dataset.company,b.dataset.sales ? "salesPanel" : "summaryPanel");
@@ -928,8 +952,10 @@
       "Recherche - CA publié historique","Registre - CA comptes de la société, périmètre distinct","Qualification",
       "Qualification - Pays répondant aux critères","Qualification - Origine","Source présence","Source lien au groupe",
       "Date consultation présence","Couverture Orange renseignée","Pays hors couverture renseignée","Prospection - Sélection",
-      "Prospection - Avancement","Prospection - Prochaine action","Prospection - Notes"];
-    const rows = visible.map(({id,name,c,r,q,op})=>[id,name,c?.direction,c?.segment,c?.vrc,c?.sector,c?.caOrange,
+      "Prospection - Avancement","Prospection - Prochaine action","Prospection - Notes",
+      "Prospection - Priorité de contact","Prospection - Justification priorité","Prospection - Pays ciblés hors couverture déclarée",
+      "Prospection - Source couverture Orange","Recherche - Alertes actualisation"];
+    const rows = visible.map(({id,name,c,r,q,op,priority,health})=>[id,name,c?.direction,c?.segment,c?.vrc,c?.sector,c?.caOrange,
       r.sector,r.hq,r.groupName,r.groupHQ,r.countries.join(" | "),
       r.documentedCountries === null ? "À corroborer" : r.documentedCountries.join(" | "),
       r.operationalCountries === null ? "Ventilation à préciser" : r.operationalCountries.join(" | "),
@@ -937,7 +963,9 @@
       r.revenue.scope,r.revenue.reported || r.publishedRevenue,r.registeredRevenue,q.status,q.matched.join(" | "),q.basis,
       r.sources.presence,r.sources.group,r.sources.presence ? (r.sourceDates.presence || r.checkedAt) : "",
       op.known ? op.covered.join(" | ") : "À valider",op.known ? op.open.join(" | ") : "À valider",
-      r.selected ? "Oui" : "Non",r.commercialStatus,r.nextActionDate,r.commercialNotes]);
+      r.selected ? "Oui" : "Non",r.commercialStatus,r.nextActionDate,r.commercialNotes,
+      priority.label,priority.reasons.join(" | "),op.known ? priority.openTargets.join(" | ") : "Couverture inconnue",
+      op.known ? op.source : "À valider",health.filter(x=>x.state !== "current").map(x=>`${x.label} : ${x.reason}`).join(" | ")]);
     download("\ufeff"+[headers,...rows].map(row=>row.map(D.csvCell).join(";")).join("\r\n"),
       `degse-prospection-${todayParis()}.csv`,"text/csv;charset=utf-8");
   });
