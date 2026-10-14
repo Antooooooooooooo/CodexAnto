@@ -1,15 +1,16 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Analyseur interne Orange : qualification documentaire et suivi de la prospection transfrontalière DEGSE.">
   <title>DEGSE — Prospection transfrontalière</title>
+  <script>try { if (localStorage.getItem("degse-theme") === "light") document.documentElement.dataset.theme = "light"; } catch (_) {}</script>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><strong>DEGSE</strong><span>Développement international</span></div>
-  <div class="brand-right"><span class="internal">Analyseur interne</span><img class="orange-logo" src="assets/orange-logo.svg" alt="Orange" width="60" height="60"></div>
+  <div class="brand-right"><button id="themeToggle" class="theme-toggle" type="button" aria-label="Thème sombre" aria-pressed="true"><span aria-hidden="true">◐</span><span id="themeLabel">Thème clair</span></button><span class="internal">Analyseur interne</span><img class="orange-logo" src="assets/orange-logo.svg" alt="Orange" width="60" height="60"></div>
 </header>
 <main>
   <div class="page-heading"><div><p class="eyebrow">PORTEFEUILLE ENTREPRISES</p><h1>Prospection transfrontalière</h1><p class="intro">Repérer les comptes à contacter et préparer le développement de leur couverture internationale.</p></div></div>

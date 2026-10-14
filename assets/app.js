@@ -4,6 +4,18 @@
   const D = window.DEGSE,
     $ = (id) => document.getElementById(id),
     STORAGE = "degse-international-v8";
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    $("themeToggle").setAttribute("aria-pressed", String(theme === "dark"));
+    $("themeLabel").textContent = theme === "dark" ? "Thème clair" : "Thème sombre";
+    $("themeToggle").title = theme === "dark" ? "Passer au thème clair" : "Passer au thème sombre";
+  }
+  applyTheme(document.documentElement.dataset.theme);
+  $("themeToggle").addEventListener("click", () => {
+    const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(theme);
+    try { localStorage.setItem("degse-theme", theme); } catch (_) {}
+  });
   const esc = (v) =>
     String(v ?? "").replace(
       /[&<>"']/g,
